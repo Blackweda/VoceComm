@@ -25,10 +25,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         https://youtu.be/5tWWEAeuZTs
     */
 
-
+    // SPEECH TO TEXT VARIABLES
     public TextView speechScreener;
     public TextView speechTextBack;
     public boolean somethingtoSay = false;
+    
+    // TEXT TO SPEECH VARIABLES
     TextToSpeech textToSpeech;
 
 
@@ -43,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         textToSpeech = new TextToSpeech(MainActivity.this, MainActivity.this);
         final Button repeatBackButton = (Button)findViewById(R.id.repeatBackButton);
 
+        // SPEECH TO TEXT HANDLER BUTTON
         startListeningButton.setOnClickListener(new View.OnClickListener() {        
 
             public void onClick(View v){
@@ -58,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             }
         });
 
+        // TEXT TO SPEECH HANDLER BUTTON
         repeatBackButton.setOnClickListener(new View.OnClickListener(){
 
             public void onClick(View v){
@@ -77,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     }
 
 
+    // SPEECH TO TEXT ASSOCIATED FUNCTION
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
@@ -95,12 +100,14 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     }
 
+    // TEXT TO SPEECH ASSOCIATED FUNCTION
     @Override
     public void onInit(int i) {
 
         textToSpeech.setOnUtteranceCompletedListener(this);
     }
 
+    // TEXT TO SPEECH ASSOCIATED FUNCTION
     @Override
     public void onUtteranceCompleted(String s) {
 
@@ -119,6 +126,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         };
     }
 
+    // TEXT TO SPEECH ASSOCIATED FUNCTION
     protected void onDestroy(){
 
         if(textToSpeech != null) {
