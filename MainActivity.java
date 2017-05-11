@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 // Specify free form input
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hi, I'm IEA. How can I help you?");
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hi, I'm Annie. How can I help you?");
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.ENGLISH);
                 startActivityForResult(intent, 2);
