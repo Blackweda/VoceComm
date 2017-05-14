@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         https://youtu.be/5tWWEAeuZTs
         
         http://stackoverflow.com/questions/16219601/how-to-make-google-voice-run-continually-in-the-background-on-android
+        protosmartiea?
     */
 
     // SPEECH TO TEXT VARIABLES
