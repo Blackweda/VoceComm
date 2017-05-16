@@ -1,8 +1,9 @@
-package com.holdings.siloaman.voicecomm;
+package com.holdings.siloaman.talktoiea;
 
 import android.content.Intent;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -23,17 +24,20 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         https://www.youtube.com/watch?v=VazSEtXHDcI
         https://youtu.be/nzkrRQgCEmE
         https://youtu.be/5tWWEAeuZTs
-        
+
         http://stackoverflow.com/questions/16219601/how-to-make-google-voice-run-continually-in-the-background-on-android
-        protosmartiea?
+        http://stackoverflow.com/questions/14940657/android-speech-recognition-as-a-service-on-android-4-1-4-2/14950616#14950616
+        http://stackoverflow.com/questions/11726023/split-string-into-individual-words-java
+		
+		We should design way for the app to use timer and shut off for a few seconds if the user has accidently pocket dialed the app
+		and is not actually saying anything useful for the app.
     */
 
-    // SPEECH TO TEXT VARIABLES
+
     public TextView speechScreener;
     public TextView speechTextBack;
     public boolean somethingtoSay = false;
-    
-    // TEXT TO SPEECH VARIABLES
+
     TextToSpeech textToSpeech;
 
 
@@ -43,13 +47,18 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Get rid of the app title in the action bar
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayShowTitleEnabled(false);
+
+
         speechTextBack = (TextView)findViewById(R.id.speechTextBack);
         Button startListeningButton = (Button)findViewById(R.id.startListeningButton);
         textToSpeech = new TextToSpeech(MainActivity.this, MainActivity.this);
         final Button repeatBackButton = (Button)findViewById(R.id.repeatBackButton);
 
         // SPEECH TO TEXT HANDLER BUTTON
-        startListeningButton.setOnClickListener(new View.OnClickListener() {        
+        startListeningButton.setOnClickListener(new View.OnClickListener() {
 
             public void onClick(View v){
 
@@ -57,12 +66,39 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 // Specify free form input
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hi, I'm Annie. How can I help you?");
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hi, I'm IEA. How can I help you?");
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.ENGLISH);
                 startActivityForResult(intent, 2);
+
             }
         });
+
+
+        // Quick Calculator Function
+
+        if(somethingtoSay == true) {
+            String checkTVForMath;
+
+            checkTVForMath = speechTextBack.getText().toString();
+
+            String[] arrayofWords = checkTVForMath.split("\\W+");       // delimit by Words
+            Toast.makeText(MainActivity.this, "Number of words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
+            somethingtoSay = false;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // TEXT TO SPEECH HANDLER BUTTON
         repeatBackButton.setOnClickListener(new View.OnClickListener(){
@@ -98,6 +134,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             ArrayList<String> results;
             results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             speechTextBack.setText(results.get(0));
+            calculator();
 
         }
 
@@ -141,6 +178,29 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         super.onDestroy();
 
     }
+
+    public void calculator(){
+
+        int finalAnswer = 0;
+
+        String checkTVForMath;
+
+        checkTVForMath = speechTextBack.getText().toString();
+
+        String[] arrayofWords = checkTVForMath.split("\\W+");       // delimit by Words
+        Toast.makeText(MainActivity.this, "Number of words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
+    }
+
 }
 
+/*
 
+You can go backwards by either:
+
+Running restore_installed_build in the same tools folder to return it to the currently installed
+version Navigating to an older commit with git checkout [revision] .. The revision is a commit hash,
+for example for 1.9 it's 189f6d39abf1651454feabd8ed01d371eadf2628 so
+git checkout 189f6d39abf1651454feabd8ed01d371eadf2628. should work (notice the dot in the end, it's
+important). You can see the commit hashes for releases with
+https://github.com/adobe/brackets/releases.
+ */
