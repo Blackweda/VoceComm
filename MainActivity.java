@@ -74,32 +74,6 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             }
         });
 
-
-        // Quick Calculator Function
-
-        if(somethingtoSay == true) {
-            String checkTVForMath;
-
-            checkTVForMath = speechTextBack.getText().toString();
-
-            String[] arrayofWords = checkTVForMath.split("\\W+");       // delimit by Words
-            Toast.makeText(MainActivity.this, "Number of words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
-            somethingtoSay = false;
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         // TEXT TO SPEECH HANDLER BUTTON
         repeatBackButton.setOnClickListener(new View.OnClickListener(){
 
@@ -184,11 +158,59 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         int finalAnswer = 0;
 
         String checkTVForMath;
+        int wordCount;
+        String[] wordDefinitions = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+                                    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+                                    "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand",
+                                    "million", "billion", "trillion", "quadrillion", "quintillion", "sextillion", "septillion", "octillion",
+                                    "nonillion", "decillion", "a hundred",
+                                    "a thousand", "a million", "a billion", "a trillion", "a quadrillion", "a quintillion", "a sextillion",
+                                    "a septillion", "a octillion", "a nonillion", "a decillion"
+        };
+        String[] wordsNumbered =   {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18",
+                                            "19", "20", "30", "40", "50", "60", "70", "80", "90", "100",
+                                            "000", "000000", "000000000", "000000000000", "000000000000000", "000000000000000000",
+                                            "000000000000000000000", "000000000000000000000000", "000000000000000000000000000",
+                                            "000000000000000000000000000000", "000000000000000000000000000000000",
+                                            "100", "1000", "1000000", "1000000000", "1000000000000", "1000000000000000",
+                                            "1000000000000000000", "1000000000000000000000", "1000000000000000000000000",
+                                            "1000000000000000000000000000", "1000000000000000000000000000000",
+                                            "1000000000000000000000000000000000"
+
+        };
 
         checkTVForMath = speechTextBack.getText().toString();
 
         String[] arrayofWords = checkTVForMath.split("\\W+");       // delimit by Words
+
         Toast.makeText(MainActivity.this, "Number of words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
+
+        wordCount = arrayofWords.length;
+        int[] wordCountArray = new int[wordCount];
+
+        for(int i = 0; i < arrayofWords.length; i++){
+
+            if(arrayofWords[i].equals("+") || arrayofWords[i].equals("plus")){
+                wordCountArray[i] = 1;
+            }
+            else if(arrayofWords[i].equals("-") || arrayofWords[i].equals("minus")){
+                wordCountArray[i] = 1;
+            }
+            else if(arrayofWords[i].equals("*") || arrayofWords[i].equals("times")){
+                wordCountArray[i] = 1;
+            }
+            else if(arrayofWords[i].equals("/") || arrayofWords[i].equals("divided")){
+                wordCountArray[i] = 1;
+            }
+            else
+                wordCountArray[i] = 0;
+        }
+
+        for(int i = 0; i < arrayofWords.length; i++){
+
+            
+        }
+
     }
 
 }
