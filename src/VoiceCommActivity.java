@@ -71,7 +71,7 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hi, I'm IEA. How can I help you?");
-                intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+                intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 20);
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.ENGLISH);
                 startActivityForResult(intent, 2);
 
@@ -142,7 +142,7 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
             @Override
             public void run(){
 
-                Toast.makeText(VoiceCommActivity.this, "Utterance Completed", Toast.LENGTH_LONG).show();
+                //Toast.makeText(VoiceCommActivity.this, "Utterance Completed", Toast.LENGTH_LONG).show();
                 Button button = (Button)findViewById(R.id.repeatBackButton);
                 button.setVisibility(Button.VISIBLE);
             }
@@ -240,37 +240,51 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
         wordCount = arrayofWords.length;
 
         String helpCommand = "help";
-        String helpCommand2 = "Help";
         String cardinalCommand = "cardinal";
         String cardinalCommand2 = "Cardinal";
         String directionCommand = "direction";
 
         for (int i = 0; i < arrayofWords.length; i++){
 
-            if(arrayofWords[i].equals(helpCommand) || arrayofWords[i].equals(helpCommand2)){
+            int WordPlace = i + 1;
 
-                int WordPlace = i + 1;
+            // SINGLE WORD 'HELP' COMMAND
+            if(arrayofWords[i].equalsIgnoreCase(helpCommand)){
+
                 Toast.makeText(VoiceCommActivity.this, "Help Command Heard At Word #: " + WordPlace, Toast.LENGTH_LONG).show();
             }
-            if(arrayofWords[i].equals(cardinalCommand) || arrayofWords[i].equals(cardinalCommand2) && arrayofWords[i+1].equals(directionCommand)){
+            // DOUBLE WORD "CARDINAL DIRECTION" COMMAND
+            if(arrayofWords[i].equals(cardinalCommand) || arrayofWords[i].equals(cardinalCommand2)){
 
-                int WordPlace = i + 1;
-                int WordPlace2 = i + 2;
-                Toast.makeText(VoiceCommActivity.this, "Cardinal Direction Command Heard At Word #: "
-                        + WordPlace + " and at: " + WordPlace2, Toast.LENGTH_LONG).show();
-            }
-            else if(arrayofWords[i].equals(cardinalCommand) || arrayofWords[i].equals(cardinalCommand2) && !arrayofWords[i+1].equals(directionCommand)){
+                // Don't ever compare array[1] if it does not exist! It crashes app!!
+                if(wordCount >= 2) {
+                    if (arrayofWords[WordPlace].equalsIgnoreCase(directionCommand)) {
 
-                int WordPlace = i + 1;
-                Toast.makeText(VoiceCommActivity.this, "Cardinal Word Heard But Not Command At Word #: "
-                        + WordPlace, Toast.LENGTH_LONG).show();
+                        Toast.makeText(VoiceCommActivity.this, "Cardinal Direction Command Heard At Word #: "
+                                + WordPlace + " and at: " + (WordPlace + 1), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(VoiceCommActivity.this, "Cardinal Command Not Activated But Heard at: " + WordPlace, Toast.LENGTH_LONG).show();
+                    }
+                }
             }
+
+            // TRIPLE WORD "GIVE ME DIRECTIONS" COMMAND
+
+            // TRIPLE WORD "WHERE AM I?" COMMAND
+
+            //
+
+
+
+
 
         }
 
-
-
     }
+
+
+
+
 
     // Create options menu
     @Override
