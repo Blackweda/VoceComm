@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Voice Comm and Contacts</string>
+    <string name="voice_comm_menu">Voice Comm</string>
+    <string name="contact_menu">Contacts</string>
+</resources>
