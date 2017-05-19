@@ -115,6 +115,7 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
             speechTextBack.setText(results.get(0));
             //calculator();
             catchKeyWordsSingles();
+            //testWord();
 			
 			/* HIGHLIGHT(BOLD) KEY WORDS IN TEXT
 			final SpannableStringBuilder str = new SpannableStringBuilder("Your awesome text");
@@ -266,18 +267,19 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
                 }
             }
 
-            // STEP-BY-STEP COMMAND
+            // STEP-BY-STEP COMMAND   [ this function gives issues the most!]
             if(parsibleString.contains("step by step") || parsibleString.contains("Step by step") ||
                     parsibleString.contains("step-by-step") || parsibleString.contains("Step-by-step")){
 
+                int wordLength = arrayofWords.length;
 
-                if(arrayofWords[i].equalsIgnoreCase(stepByStepCommand)){
+                if(i < (wordLength-1)) {     // prevent the 2nd 'step' from accessing garbage memory access with arrayofWords[i+n]
 
-                    Toast.makeText(VoiceCommActivity.this, "Step-by-step Command Heard At Word #: " + WordPlace, Toast.LENGTH_LONG).show();
-                }
-                else if(arrayofWords[i].equalsIgnoreCase(stepCommand) && arrayofWords[i+1].equalsIgnoreCase(byCommand) && arrayofWords[i+2].equalsIgnoreCase(stepCommand)){
+                    if (arrayofWords[i].equalsIgnoreCase(stepCommand) && arrayofWords[i+1].equalsIgnoreCase(byCommand) && arrayofWords[i+2].equalsIgnoreCase(stepCommand)){
 
-                    Toast.makeText(VoiceCommActivity.this, "Step By Step Command Heard At Word #: " + WordPlace + " to " + (WordPlace+2), Toast.LENGTH_LONG).show();
+                        Toast.makeText(VoiceCommActivity.this, "Step By Step Command Heard At Word #: " + WordPlace + " to " + (WordPlace+2), Toast.LENGTH_LONG).show();
+                    }
+                    Toast.makeText(VoiceCommActivity.this, "Step By Step Command Has # of Words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -343,6 +345,16 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
 
         }
 
+    }
+
+    public void testWord(){
+
+        String step = "step-by-step";
+        String[] words = step.split("\\W+");
+        Toast.makeText(VoiceCommActivity.this, "Testing Word: " + step, Toast.LENGTH_LONG).show();
+        for(int j = 0; j < words.length; j++){
+            Toast.makeText(VoiceCommActivity.this, "Word #" + j + ": " + words[j], Toast.LENGTH_LONG).show();
+        }
     }
 
     // Create options menu
