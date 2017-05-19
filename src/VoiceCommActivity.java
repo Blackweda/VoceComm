@@ -32,6 +32,7 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
         http://stackoverflow.com/questions/11726023/split-string-into-individual-words-java
 		
 		http://stackoverflow.com/questions/14371092/how-to-make-a-specific-text-on-textview-bold
+		http://stackoverflow.com/questions/1987673/substring-search-in-java
 		
 		We should design way for the app to use timer and shut off for a few seconds if the user has accidently pocket dialed the app
 		and is not actually saying anything useful for the app.
@@ -113,7 +114,7 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
             results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             speechTextBack.setText(results.get(0));
             //calculator();
-            catchKeyWords();
+            catchKeyWordsSingles();
 			
 			/* HIGHLIGHT(BOLD) KEY WORDS IN TEXT
 			final SpannableStringBuilder str = new SpannableStringBuilder("Your awesome text");
@@ -226,65 +227,123 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
 
     }
 
-    public void catchKeyWords(){
+    public void catchKeyWordsSingles(){
 
-        String checkTVForMath;
-        int wordCount;
+        String parsibleString;
 
-        checkTVForMath = speechTextBack.getText().toString();
+        parsibleString = speechTextBack.getText().toString();
 
-        String[] arrayofWords = checkTVForMath.split("\\W+");       // delimit by Words
+        String[] arrayofWords = parsibleString.split("\\W+");       // delimit by Words
 
         //Toast.makeText(VoiceCommActivity.this, "Number of words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
 
-        wordCount = arrayofWords.length;
-
         String helpCommand = "help";
-        String cardinalCommand = "cardinal";
-        String cardinalCommand2 = "Cardinal";
-        String directionCommand = "direction";
+        String stepCommand = "step"; String byCommand = "by"; String stepByStepCommand = "step-by-step";
+        String callCommand = "call"; String contactCommand = "contact";
+        String explainCommand = "explain"; String routeCommand = "route";
+        String cardinalCommand = "cardinal"; String directionCommand = "direction";
+        String whereCommand = "where"; String amCommand = "am"; String iCommand = "I";
+        String giveCommand = "give"; String meCommand = "me"; String directionsCommand = "directions";
+        String whatCommand = "what"; String isCommand = "is"; String myCommand = "my"; String locationCommand = "location";
+        String howCommand = "how"; String farCommand = "far"; String fromCommand = "from"; String checkPointCommand = "checkpoint";
 
         for (int i = 0; i < arrayofWords.length; i++){
 
-            int WordPlace = i + 1;
+            int WordPlace = i+1;        // Show the Human understandable word placement rather than the array element placement
 
-            // SINGLE WORD 'HELP' COMMAND
+            // HELP COMMAND
             if(arrayofWords[i].equalsIgnoreCase(helpCommand)){
 
                 Toast.makeText(VoiceCommActivity.this, "Help Command Heard At Word #: " + WordPlace, Toast.LENGTH_LONG).show();
             }
-            // DOUBLE WORD "CARDINAL DIRECTION" COMMAND
-            if(arrayofWords[i].equals(cardinalCommand) || arrayofWords[i].equals(cardinalCommand2)){
 
-                // Don't ever compare array[1] if it does not exist! It crashes app!!
-                if(wordCount >= 2) {
-                    if (arrayofWords[WordPlace].equalsIgnoreCase(directionCommand)) {
+            // CARDINAL DIRECTION COMMAND
+            if(parsibleString.contains("cardinal direction") || parsibleString.contains("Cardinal direction")){
 
-                        Toast.makeText(VoiceCommActivity.this, "Cardinal Direction Command Heard At Word #: "
-                                + WordPlace + " and at: " + (WordPlace + 1), Toast.LENGTH_LONG).show();
-                    } else {
-                        Toast.makeText(VoiceCommActivity.this, "Cardinal Command Not Activated But Heard at: " + WordPlace, Toast.LENGTH_LONG).show();
-                    }
+                if(arrayofWords[i].equalsIgnoreCase(cardinalCommand)){
+
+                    Toast.makeText(VoiceCommActivity.this, "Cardinal Direction Command Heard At Word #: " + WordPlace + " and " + (WordPlace+1), Toast.LENGTH_LONG).show();
                 }
             }
 
-            // TRIPLE WORD "GIVE ME DIRECTIONS" COMMAND
-
-            // TRIPLE WORD "WHERE AM I?" COMMAND
-
-            //
+            // STEP-BY-STEP COMMAND
+            if(parsibleString.contains("step by step") || parsibleString.contains("Step by step") ||
+                    parsibleString.contains("step-by-step") || parsibleString.contains("Step-by-step")){
 
 
+                if(arrayofWords[i].equalsIgnoreCase(stepByStepCommand)){
 
+                    Toast.makeText(VoiceCommActivity.this, "Step-by-step Command Heard At Word #: " + WordPlace, Toast.LENGTH_LONG).show();
+                }
+                else if(arrayofWords[i].equalsIgnoreCase(stepCommand) && arrayofWords[i+1].equalsIgnoreCase(byCommand) && arrayofWords[i+2].equalsIgnoreCase(stepCommand)){
 
+                    Toast.makeText(VoiceCommActivity.this, "Step By Step Command Heard At Word #: " + WordPlace + " to " + (WordPlace+2), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            // WHERE AM I? COMMAND
+            if(parsibleString.contains("where am I") || parsibleString.contains("Where am I")){
+
+                if(arrayofWords[i].equalsIgnoreCase(whereCommand) && arrayofWords[i+1].equalsIgnoreCase(amCommand) && arrayofWords[i+2].equalsIgnoreCase(iCommand)){
+
+                    Toast.makeText(VoiceCommActivity.this, "Where Am I Command Heard At Word #: " + WordPlace + " to " + (WordPlace+2), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            // GIVE ME DIRECTIONS COMMAND
+            if(parsibleString.contains("give me directions") || parsibleString.contains("Give me directions")){
+
+                if(arrayofWords[i].equalsIgnoreCase(giveCommand) && arrayofWords[i+1].equalsIgnoreCase(meCommand) && arrayofWords[i+2].equalsIgnoreCase(directionsCommand)){
+
+                    Toast.makeText(VoiceCommActivity.this, "Give Me Directions Command Heard At Word #: " + WordPlace + " to " + (WordPlace+2), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            // CONTACT COMMAND
+            if(parsibleString.contains("call contact") || parsibleString.contains("Call contact")){
+
+                if(arrayofWords[i].equalsIgnoreCase(callCommand) && arrayofWords[i+1].equalsIgnoreCase(contactCommand)){
+
+                    Toast.makeText(VoiceCommActivity.this, "Call Contact Command Heard At Word #: " + WordPlace + " to " + (WordPlace+1), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            // EXPLAIN ROUTE COMMAND
+            if(parsibleString.contains("explain route") || parsibleString.contains("Explain route")){
+
+                if(arrayofWords[i].equalsIgnoreCase(explainCommand) && arrayofWords[i+1].equalsIgnoreCase(routeCommand)){
+
+                    Toast.makeText(VoiceCommActivity.this, "Explain Route Command Heard At Word #: " + WordPlace + " to " + (WordPlace+1), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            // HOW FAR AM I FROM CHECKPOINT COMMAND
+            if(parsibleString.contains("how far am I from checkpoint") || parsibleString.contains("How far am I from checkpoint")){
+
+                if(arrayofWords[i].equalsIgnoreCase(howCommand)
+                        && arrayofWords[i+1].equalsIgnoreCase(farCommand)
+                        && arrayofWords[i+2].equalsIgnoreCase(amCommand)
+                        && arrayofWords[i+3].equalsIgnoreCase(iCommand)
+                        && arrayofWords[i+4].equalsIgnoreCase(fromCommand)
+                        && arrayofWords[i+5].equalsIgnoreCase(checkPointCommand)){
+
+                    Toast.makeText(VoiceCommActivity.this, "How Far Am I From Checkpoint Command Heard At Word #: " + WordPlace + " to " + (WordPlace+5), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            // WHAT IS MY LOCATION COMMAND
+            if(parsibleString.contains("what is my location") || parsibleString.contains("What is my location")){
+
+                if(arrayofWords[i].equalsIgnoreCase(whatCommand) && arrayofWords[i+1].equalsIgnoreCase(isCommand)
+                        && arrayofWords[i+2].equalsIgnoreCase(myCommand) && arrayofWords[i+3].equalsIgnoreCase(locationCommand)){
+
+                    Toast.makeText(VoiceCommActivity.this, "What Is My Location Command Heard At Word #: " + WordPlace + " to " + (WordPlace+3), Toast.LENGTH_LONG).show();
+                }
+            }
 
         }
 
     }
-
-
-
-
 
     // Create options menu
     @Override
