@@ -43,6 +43,8 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
     public TextView speechTextBack;
     public boolean somethingtoSay = false;
 
+    public enum ablautReduplication { Opinion, Size, Age, Shape, Colour, Origin, Material, Purpose, Noun };
+
     TextToSpeech textToSpeech;
 
 
@@ -238,13 +240,14 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
 
         //Toast.makeText(VoiceCommActivity.this, "Number of words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
 
-        String helpCommand = "help";
-        String stepCommand = "step"; String byCommand = "by"; String stepByStepCommand = "step-by-step";
+
+        String voiceCommand = "voicecomm"; String helpCommand = "help";
         String callCommand = "call"; String contactCommand = "contact";
         String explainCommand = "explain"; String routeCommand = "route";
         String cardinalCommand = "cardinal"; String directionCommand = "direction";
         String whereCommand = "where"; String amCommand = "am"; String iCommand = "I";
         String giveCommand = "give"; String meCommand = "me"; String directionsCommand = "directions";
+        String stepCommand = "step"; String byCommand = "by"; String stepByStepCommand = "step-by-step";
         String whatCommand = "what"; String isCommand = "is"; String myCommand = "my"; String locationCommand = "location";
         String howCommand = "how"; String farCommand = "far"; String fromCommand = "from"; String checkPointCommand = "checkpoint";
 
@@ -253,9 +256,10 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
             int WordPlace = i+1;        // Show the Human understandable word placement rather than the array element placement
 
             // HELP COMMAND
-            if(arrayofWords[i].equalsIgnoreCase(helpCommand)){
+            if(parsibleString.contains("voicecomm help") || parsibleString.contains("Voicecomm help"))
+            if(arrayofWords[i].equalsIgnoreCase(voiceCommand)){
 
-                Toast.makeText(VoiceCommActivity.this, "Help Command Heard At Word #: " + WordPlace, Toast.LENGTH_LONG).show();
+                Toast.makeText(VoiceCommActivity.this, "Voicecomm Help Command Heard At Word #: " + WordPlace + " and " + (WordPlace+1), Toast.LENGTH_LONG).show();
             }
 
             // CARDINAL DIRECTION COMMAND
@@ -279,7 +283,6 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
 
                         Toast.makeText(VoiceCommActivity.this, "Step By Step Command Heard At Word #: " + WordPlace + " to " + (WordPlace+2), Toast.LENGTH_LONG).show();
                     }
-                    Toast.makeText(VoiceCommActivity.this, "Step By Step Command Has # of Words: " + arrayofWords.length, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -349,11 +352,11 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
 
     public void testWord(){
 
-        String step = "step-by-step";
-        String[] words = step.split("\\W+");
-        Toast.makeText(VoiceCommActivity.this, "Testing Word: " + step, Toast.LENGTH_LONG).show();
-        for(int j = 0; j < words.length; j++){
-            Toast.makeText(VoiceCommActivity.this, "Word #" + j + ": " + words[j], Toast.LENGTH_LONG).show();
+        String testWord = "step-by-step";
+        String[] wordSplit = testWord.split("\\W+");
+        Toast.makeText(VoiceCommActivity.this, "Testing Word: " + testWord, Toast.LENGTH_LONG).show();
+        for(int j = 0; j < wordSplit.length; j++){
+            Toast.makeText(VoiceCommActivity.this, "Word #" + j + ": " + wordSplit[j], Toast.LENGTH_LONG).show();
         }
     }
 
@@ -375,6 +378,10 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
                 return true;
             case R.id.contact_menu:
                 menuIntent = new Intent(VoiceCommActivity.this, ContactActivity.class);
+                startActivity(menuIntent);
+                return true;
+            case R.id.learning_menu:
+                menuIntent = new Intent(VoiceCommActivity.this, LearningActivity.class);
                 startActivity(menuIntent);
                 return true;
             default:
