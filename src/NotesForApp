@@ -9,7 +9,7 @@ MAX
 
 
 
-COLD(5):
+COLD(5):                                // need ability to add words.. rearrange the ordering in the array
 
 frozen              max
 freezing
