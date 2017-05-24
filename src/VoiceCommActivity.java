@@ -287,7 +287,8 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
             }
 
             // WHERE AM I? COMMAND
-            if(parsibleString.contains("where am I") || parsibleString.contains("Where am I")){
+            if(parsibleString.contains("where am I") || parsibleString.contains("Where am I")
+	      || parsibleString.contains("where am i") || parsibleString.contains("Where am i")){
 
                 if(arrayofWords[i].equalsIgnoreCase(whereCommand) && arrayofWords[i+1].equalsIgnoreCase(amCommand) && arrayofWords[i+2].equalsIgnoreCase(iCommand)){
 
@@ -323,7 +324,8 @@ public class VoiceCommActivity extends AppCompatActivity implements TextToSpeech
             }
 
             // HOW FAR AM I FROM CHECKPOINT COMMAND
-            if(parsibleString.contains("how far am I from checkpoint") || parsibleString.contains("How far am I from checkpoint")){
+            if(parsibleString.contains("how far am I from checkpoint") || parsibleString.contains("How far am I from checkpoint")
+	      		|| parsibleString.contains("how far am i from checkpoint" || parsibleString.contains("How far am i from checkpoint")){
 
                 if(arrayofWords[i].equalsIgnoreCase(howCommand)
                         && arrayofWords[i+1].equalsIgnoreCase(farCommand)
