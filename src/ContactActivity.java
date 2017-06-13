@@ -1,11 +1,18 @@
 package com.holdings.siloaman.talktoiea;
 
+import android.app.Notification;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
+import android.support.v4.app.Fragment;
+import android.speech.RecognizerIntent;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -22,56 +29,198 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.Manifest;
-
-//import com.google.android.gms.common.ConnectionResult;
-//import com.google.android.gms.common.api.GoogleApiClient;
-
+import java.util.ArrayList;
+import java.util.Locale;
 
 public class ContactActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor>,
-        AdapterView.OnItemClickListener/*, GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener*/ {
+        AdapterView.OnItemClickListener,
+        TextToSpeech.OnInitListener,
+        TextToSpeech.OnUtteranceCompletedListener {
 
     /*
     https://developer.android.com/training/contacts-provider/retrieve-names.html
     https://developer.android.com/training/contacts-provider/retrieve-details.html
     https://github.com/keithweaver/Android-Samples/tree/master/Location/GetLocationAndroidM
+    http://demonuts.com/2017/03/20/get-contact-list-details-android-studio-programmatically/
+    https://youtu.be/F73tf7ySAZU
+    https://youtu.be/g4_1UOFNLEY
     */
 
-    long contactID;
-    String contactName;
-    ContactsContract.CommonDataKinds.Phone contactPhone;
+    public Button ActionButton, StartListeningButton;
+    public TextView ContactNameTV, ContactPhoneTV, speechTextBack;
+    TextToSpeech textToSpeech;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_contact);
 
-        final TextView ContactNameTV = (TextView)findViewById(R.id.nameDisplayTextView);
-        final TextView ContactPhoneTV = (TextView)findViewById(R.id.phoneDisplayTextView);
-        final TextView TextMessageTV = (TextView)findViewById(R.id.textMessageDisplayTextView);
-        final TextView LocationTV = (TextView)findViewById(R.id.locationDisplayTextView);
+        speechTextBack = (TextView)findViewById(R.id.speechTextBack);
+        StartListeningButton = (Button)findViewById(R.id.startListeningButton);
+        ActionButton = (Button)findViewById(R.id.actionButton);
+        textToSpeech = new TextToSpeech(ContactActivity.this, ContactActivity.this);
 
-        EditText GetContactET = (EditText)findViewById(R.id.findEditText);
 
-        Button LoadContactButton = (Button)findViewById(R.id.loadDataButton);
-        Button HelpButton = (Button)findViewById(R.id.helpButton);
+        ContactNameTV = (TextView)findViewById(R.id.contactNameTV);
+        ContactPhoneTV = (TextView)findViewById(R.id.contactPhoneTV);
 
-        LoadContactButton.setOnClickListener(new View.OnClickListener(){
 
-            public void onClick(View v){
-
-                // Load Contact Info into TextViews
-            }
-        });
-
-        HelpButton.setOnClickListener(new View.OnClickListener(){
+        // SPEECH TO TEXT HANDLER BUTTON
+        StartListeningButton.setOnClickListener(new View.OnClickListener() {
 
             public void onClick(View v){
 
-                // Send the Text Message
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                    // Doesn't work yet...
+                //Intent intent = new Intent(RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE);
+                // Specify free form input
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hi, I'm IEA. How can I help you?");
+                intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 20);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.ENGLISH);
+                //intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 30000);
+                startActivityForResult(intent, 2);
+
             }
         });
+
+
+    }
+
+    // SPEECH TO TEXT ASSOCIATED FUNCTION
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if(requestCode == 1){
+
+            // for other listeners or buttons
+        }
+
+        if(requestCode == 2){
+
+            ArrayList<String> results;
+            results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            speechTextBack.setText(results.get(0));
+
+            String parsibleString;
+
+            parsibleString = speechTextBack.getText().toString();
+
+            String[] arrayofWords = parsibleString.split("\\W+");       // delimit by Words
+
+            int numberofWords = arrayofWords.length;
+            String nameofContact = arrayofWords[1];
+
+            String capitalizedName = nameofContact.substring(0, 1).toUpperCase() + nameofContact.substring(1);
+
+            boolean foundContact = getContactDetails(capitalizedName);
+
+            if(foundContact){
+
+                Toast.makeText(ContactActivity.this, "Calling: " + capitalizedName, Toast.LENGTH_LONG).show();
+            }
+
+
+
+                                    /*
+                                    Uri contactData = data.getData();
+                                    Cursor c =  getContentResolver().query(contactData, null, null, null, null);
+
+                                    if (c.moveToFirst()) {
+
+                                        String phoneNumber = "", emailAddress = "";
+                                        String name = c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+                                        String contactId = c.getString(c.getColumnIndex(ContactsContract.Contacts._ID));
+                                        //http://stackoverflow.com/questions/866769/how-to-call-android-contacts-list   our upvoted answer
+
+                                        String hasPhone = c.getString(c.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER));
+
+                                        if ( hasPhone.equalsIgnoreCase("1"))
+                                            hasPhone = "true";
+                                        else
+                                            hasPhone = "false" ;
+
+                                        if (Boolean.parseBoolean(hasPhone))
+                                        {
+                                            Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,ContactsContract.CommonDataKinds.Phone.CONTACT_ID +" = "+ contactId,null, null);
+                                            while (phones.moveToNext())
+                                            {
+                                                phoneNumber = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                                            }
+                                            phones.close();
+                                        }
+
+                                        // Find Email Addresses
+                                        Cursor emails = getContentResolver().query(ContactsContract.CommonDataKinds.Email.CONTENT_URI,null,ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = " + contactId,null, null);
+                                        while (emails.moveToNext())
+                                        {
+                                            emailAddress = emails.getString(emails.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA));
+                                        }
+                                        emails.close();
+
+                                        //mainActivity.onBackPressed();
+                                        // Toast.makeText(mainactivity, "go go go", Toast.LENGTH_SHORT).show();
+
+                                        ContactNameTV.setText("Name: "+name);
+                                        ContactPhoneTV.setText("Phone: "+phoneNumber);
+                                        Log.d("curs", name + " num" + phoneNumber + " " + "mail" + emailAddress);
+                                    }
+                                    c.close();
+                                    */
+        }
+
+    }
+
+    public boolean getContactDetails(String requestedName) {
+
+        // TAKEN FROM : https://youtu.be/g4_1UOFNLEY
+
+        boolean contactFound = false;
+
+        ContentResolver myResolver = getContentResolver();   // class used to query / retrieve list of contacts
+        Cursor cursor = myResolver.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+
+        while(cursor.moveToNext()){
+
+            String contact_id = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID));
+            String contact_name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME));
+            String contact_phone_number = "";
+            //String contact_email = "";
+
+            if(contact_name.contains(requestedName)) {
+
+                // need phone cursor because of possibility of multiple phone numbers (home, cell, work, etc) for one ID user
+                Cursor phoneCursor = myResolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
+                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?", new String[]{contact_id}, null);
+
+                while (phoneCursor.moveToNext()) {
+
+                    contact_phone_number = phoneCursor.getString(phoneCursor.getColumnIndexOrThrow
+                            (ContactsContract.CommonDataKinds.Phone.NUMBER));
+                    break;
+                }
+
+                Cursor emailCursor = myResolver.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, null,
+                        ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = ?", new String[]{contact_id}, null);
+                /*
+                while (emailCursor.moveToNext()) {
+
+                    contact_email = emailCursor.getString(emailCursor.getColumnIndexOrThrow
+                            (ContactsContract.CommonDataKinds.Email.DATA));
+                }
+                */
+                contactFound = true;
+                ContactNameTV.setText(contact_name);
+                ContactPhoneTV.setText(contact_phone_number);
+
+
+            }
+        }
+        return contactFound;
     }
 
     @Override
@@ -116,8 +265,40 @@ public class ContactActivity extends AppCompatActivity implements
                 menuIntent = new Intent(ContactActivity.this, ContactActivity.class);
                 startActivity(menuIntent);
                 return true;
+            case R.id.learning_menu:
+                menuIntent = new Intent(ContactActivity.this, LearningActivity.class);
+                startActivity(menuIntent);
+                return true;
+            case R.id.direction_menu:
+                menuIntent = new Intent(ContactActivity.this, CardinalDirectionActivity.class);
+                startActivity(menuIntent);
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onInit(int i) {
+
+        textToSpeech.setOnUtteranceCompletedListener(this);
+    }
+
+    @Override
+    public void onUtteranceCompleted(String s) {
+
+        runOnUiThread(new Runnable(){
+
+            @Override
+            public void run(){
+
+                //Toast.makeText(VoiceCommActivity.this, "Utterance Completed", Toast.LENGTH_LONG).show();
+                Button button = (Button)findViewById(R.id.repeatBackButton);
+                button.setVisibility(Button.VISIBLE);
+            }
+
+        });{
+
+        };
     }
 }
