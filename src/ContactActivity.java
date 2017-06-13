@@ -1,8 +1,12 @@
 package com.holdings.siloaman.talktoiea;
 
 import android.app.Notification;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
 import android.support.v4.app.Fragment;
@@ -12,6 +16,7 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -45,12 +50,24 @@ public class ContactActivity extends AppCompatActivity implements
     http://demonuts.com/2017/03/20/get-contact-list-details-android-studio-programmatically/
     https://youtu.be/F73tf7ySAZU
     https://youtu.be/g4_1UOFNLEY
+    https://youtu.be/dGnEEvCo1lM
     */
 
     public Button ActionButton, StartListeningButton;
     public TextView ContactNameTV, ContactPhoneTV, speechTextBack;
+    String helpMessage, helpContactName, helpPhoneNumber;
     TextToSpeech textToSpeech;
+    IntentFilter intentFilter;
 
+    // not sure if necessary
+    private BroadcastReceiver intentReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context context, Intent intent){
+
+            //TextView inTxt = (TextView)findViewById(R.id.textMsg);
+            //inTxt.setText(intent.getExtras().getString("message"));
+        }
+    };
 
 
     @Override
@@ -66,6 +83,7 @@ public class ContactActivity extends AppCompatActivity implements
 
         ContactNameTV = (TextView)findViewById(R.id.contactNameTV);
         ContactPhoneTV = (TextView)findViewById(R.id.contactPhoneTV);
+
 
 
         // SPEECH TO TEXT HANDLER BUTTON
@@ -87,6 +105,12 @@ public class ContactActivity extends AppCompatActivity implements
 
             }
         });
+
+        intentFilter = new IntentFilter();
+        intentFilter.addAction("SMS_RECEIVED_ACTION");
+
+
+
 
 
     }
@@ -124,7 +148,12 @@ public class ContactActivity extends AppCompatActivity implements
                 Toast.makeText(ContactActivity.this, "Calling: " + capitalizedName, Toast.LENGTH_LONG).show();
             }
 
+            // SEND THE SMS MESSAGE
 
+            helpMessage = "Help " + helpContactName + "! I need assistance. I am currently at: *SCHOOL*";
+            Toast.makeText(ContactActivity.this, helpMessage, Toast.LENGTH_LONG).show();
+
+            sendMsg(helpPhoneNumber, helpMessage);
 
                                     /*
                                     Uri contactData = data.getData();
@@ -175,6 +204,35 @@ public class ContactActivity extends AppCompatActivity implements
 
     }
 
+    protected void sendMsg(String theNumber, String myMsg){
+
+        String SENT = "Message Sent";
+        String DELIVERED = "Message Delivered";
+
+        PendingIntent sentPI = PendingIntent.getBroadcast(this, 0, new Intent(SENT), 0);
+        PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0, new Intent(DELIVERED), 0);
+
+        SmsManager sms = SmsManager.getDefault();
+        sms.sendTextMessage(theNumber, null, myMsg, sentPI, deliveredPI);
+
+    }
+
+    @Override
+    protected void onResume(){
+
+        //register the receiver
+        registerReceiver(intentReceiver, intentFilter);
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause(){
+
+        //unregister the receiver
+        unregisterReceiver(intentReceiver);
+        super.onPause();
+    }
+
     public boolean getContactDetails(String requestedName) {
 
         // TAKEN FROM : https://youtu.be/g4_1UOFNLEY
@@ -188,6 +246,7 @@ public class ContactActivity extends AppCompatActivity implements
 
             String contact_id = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID));
             String contact_name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME));
+            helpContactName = contact_name;
             String contact_phone_number = "";
             //String contact_email = "";
 
@@ -201,6 +260,7 @@ public class ContactActivity extends AppCompatActivity implements
 
                     contact_phone_number = phoneCursor.getString(phoneCursor.getColumnIndexOrThrow
                             (ContactsContract.CommonDataKinds.Phone.NUMBER));
+                    helpPhoneNumber = contact_phone_number;
                     break;
                 }
 
