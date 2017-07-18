@@ -16,11 +16,6 @@ import android.widget.TextView;
 
 public class CardinalDirectionActivity extends AppCompatActivity implements SensorEventListener {
 
-    /*
-        http://www.codingforandroid.com/2011/01/using-orientation-sensors-simple.html
-        https://www.journal.deviantdev.com/android-compass-azimuth-calculating/
-    */
-
     float[] mGravity;
     float[] mGeomagnetic;
     float azimut;
@@ -34,10 +29,12 @@ public class CardinalDirectionActivity extends AppCompatActivity implements Sens
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cardinal_direction);
 
+        // SET UP SENSORS
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
+        // DIRECTION DISPLAY
         final TextView DirectionTV = (TextView)findViewById(R.id.directionTextView);
         Button directionButton = (Button)findViewById(R.id.directionButton);
 
@@ -50,15 +47,7 @@ public class CardinalDirectionActivity extends AppCompatActivity implements Sens
 
                 //      Directions Cardinally
                 //      North = 0, South = 180, East = 90, West = 270
-                // Directions by Clock
-                /*
-                30 = 1              210 = 7
-                60 = 2              240 = 8
-                90 = 3              270 = 9
-                120 = 4             300 = 10
-                150 = 5             330 = 11
-                180 = 6             360 = 12
-                */
+               
                 String currDegrees = Float.toString(degree);
                 String currDirection = "unknown";
 
@@ -80,6 +69,7 @@ public class CardinalDirectionActivity extends AppCompatActivity implements Sens
                 if(degree > 272.5 && degree < 357.5)
                     currDirection = "North-West";
 
+                // DISPLAY THE DIRECTION ON TEXTVIEW
                 DirectionTV.setText(currDegrees + " degrees " + currDirection);
             }
         });
@@ -124,38 +114,6 @@ public class CardinalDirectionActivity extends AppCompatActivity implements Sens
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
-    }
-
-    // Create options menu
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.app_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
-        switch (item.getItemId()) {
-            case R.id.voice_comm_menu:
-                Intent menuIntent = new Intent(CardinalDirectionActivity.this, VoiceCommActivity.class);
-                startActivity(menuIntent);
-                return true;
-            case R.id.contact_menu:
-                menuIntent = new Intent(CardinalDirectionActivity.this, ContactActivity.class);
-                startActivity(menuIntent);
-                return true;
-            case R.id.learning_menu:
-                menuIntent = new Intent(CardinalDirectionActivity.this, LearningActivity.class);
-                startActivity(menuIntent);
-                return true;
-            case R.id.direction_menu:
-                menuIntent = new Intent(CardinalDirectionActivity.this, CardinalDirectionActivity.class);
-                startActivity(menuIntent);
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
+    }    
+    
 }
