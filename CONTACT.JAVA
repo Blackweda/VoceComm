@@ -43,15 +43,7 @@ public class ContactActivity extends AppCompatActivity implements
         TextToSpeech.OnInitListener,
         TextToSpeech.OnUtteranceCompletedListener {
 
-    /*
-    https://developer.android.com/training/contacts-provider/retrieve-names.html
-    https://developer.android.com/training/contacts-provider/retrieve-details.html
-    https://github.com/keithweaver/Android-Samples/tree/master/Location/GetLocationAndroidM
-    http://demonuts.com/2017/03/20/get-contact-list-details-android-studio-programmatically/
-    https://youtu.be/F73tf7ySAZU
-    https://youtu.be/g4_1UOFNLEY
-    https://youtu.be/dGnEEvCo1lM
-    */
+    
 
     public Button ActionButton, StartListeningButton;
     public TextView ContactNameTV, ContactPhoneTV, speechTextBack;
@@ -101,7 +93,7 @@ public class ContactActivity extends AppCompatActivity implements
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 20);
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.ENGLISH);
                 //intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 30000);
-                startActivityForResult(intent, 2);
+                startActivityForResult(intent, 500);
 
             }
         });
@@ -124,7 +116,7 @@ public class ContactActivity extends AppCompatActivity implements
             // for other listeners or buttons
         }
 
-        if(requestCode == 2){
+        if(requestCode == 500){
 
             ArrayList<String> results;
             results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
@@ -147,29 +139,13 @@ public class ContactActivity extends AppCompatActivity implements
             if(parsibleString.contains("contact") /*|| parsibleString.contains("Contact")*/ &&
                     parsibleString.contains("help")) {
 
-                if (arrayofWords[0].equalsIgnoreCase(contactCommand)){         // possibly a middle and last name or special case
-
-                    //if(arrayofWords[2].equalsIgnoreCase(forCommand) || arrayofWords[3].equalsIgnoreCase(forCommand)) {
-
-                        //if(arrayofWords[2].equalsIgnoreCase(forCommand))
-                            nameofContact = arrayofWords[1];
-                        //else if(arrayofWords[3].equalsIgnoreCase(forCommand))
-                        //    nameofContact = arrayofWords[1] + " " + arrayofWords[2];
-
-                        foundContact = getContactDetails(nameofContact);    //capitalizedName
-                    //}
+                if (arrayofWords[0].equalsIgnoreCase(contactCommand)){         // possibly a middle and last name or special case                        
+                            
+                        nameofContact = arrayofWords[1];
+                        foundContact = getContactDetails(nameofContact);    
                 }
             }
-            //String capitalizedName = "";
-
-            //if(numberofWords == 2)
-            //    capitalizedName = nameofContact.substring(0, 1).toUpperCase() + nameofContact.substring(1);
-            //else if(numberofWords > 2){
-            //
-            //}
-
-            //boolean foundContact = getContactDetails(nameofContact);    //capitalizedName
-
+            
             if(foundContact){
 
                 Toast.makeText(ContactActivity.this, "Calling: " + ContactNameTV/*capitalizedName*/, Toast.LENGTH_LONG).show();
@@ -178,7 +154,7 @@ public class ContactActivity extends AppCompatActivity implements
                 String tempContactName = ContactNameTV.getText().toString();
 
                 //helpContactName is giving the first person in list, not the actual person I requested!!!
-                helpMessage = "Hello " + tempContactName/*helpContactName*/ + "! I am testing my new COOL app! I am currently at: 70 The Pond Rd.";
+                helpMessage = "Hello " + tempContactName + "! I am testing my new COOL app! I am currently at: *insert GPS Location* .";
                 Toast.makeText(ContactActivity.this, helpMessage, Toast.LENGTH_LONG).show();
 
                 sendMsg(helpPhoneNumber, helpMessage);
@@ -284,63 +260,5 @@ public class ContactActivity extends AppCompatActivity implements
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
     }
-
-
-
-    // Create options menu
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.app_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
-        switch (item.getItemId()) {
-            case R.id.voice_comm_menu:
-                Intent menuIntent = new Intent(ContactActivity.this, VoiceCommActivity.class);
-                startActivity(menuIntent);
-                return true;
-            case R.id.contact_menu:
-                menuIntent = new Intent(ContactActivity.this, ContactActivity.class);
-                startActivity(menuIntent);
-                return true;
-            case R.id.learning_menu:
-                menuIntent = new Intent(ContactActivity.this, LearningActivity.class);
-                startActivity(menuIntent);
-                return true;
-            case R.id.direction_menu:
-                menuIntent = new Intent(ContactActivity.this, CardinalDirectionActivity.class);
-                startActivity(menuIntent);
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
-    @Override
-    public void onInit(int i) {
-
-        textToSpeech.setOnUtteranceCompletedListener(this);
-    }
-
-    @Override
-    public void onUtteranceCompleted(String s) {
-
-        runOnUiThread(new Runnable(){
-
-            @Override
-            public void run(){
-
-                //Toast.makeText(VoiceCommActivity.this, "Utterance Completed", Toast.LENGTH_LONG).show();
-                Button button = (Button)findViewById(R.id.repeatBackButton);
-                button.setVisibility(Button.VISIBLE);
-            }
-
-        });{
-
-        };
-    }
+                
 }
