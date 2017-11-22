@@ -12,4 +12,7 @@ SQL REFERENCE SHEET
 								          City NOT LIKE '%on%'
 								          (City LIKE '%on%) OR/AND (Name LIKE 'Toronto')
 								
-				    ORDER BY 		  Name DESC				
+				    ORDER BY 		  Name DESC	
+				    
+https://youtu.be/IhvN_MxLKBY				    
+				    
