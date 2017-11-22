@@ -1,0 +1,13 @@
+SQL REFERENCE SHEET
+===================
+
+
+(fields)		SELECT	
+(tables)		FROM 	
+(filters)		WHERE			    IS NOT NULL / City = 'Toronto' /
+								          City IN ('Toronto', 'Edmonton') /
+								          City LIKE 'To%' /
+								          City NOT LIKE '%on%'
+								          (City LIKE '%on%) OR/AND (Name LIKE 'Toronto')
+								
+				    ORDER BY 		  Name DESC				
