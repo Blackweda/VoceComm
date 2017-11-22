@@ -2,8 +2,10 @@ SQL REFERENCE SHEET
 ===================
 
 
-(fields)		SELECT	
-(tables)		FROM 	
+(fields)		SELECT	                    *               Name, ID
+
+(tables)		FROM                        dbo.Customer
+
 (filters)		WHERE			    IS NOT NULL / City = 'Toronto' /
 								          City IN ('Toronto', 'Edmonton') /
 								          City LIKE 'To%' /
