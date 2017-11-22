@@ -14,5 +14,15 @@ SQL REFERENCE SHEET
 								
 				    ORDER BY 		  Name DESC	
 				    
-https://youtu.be/IhvN_MxLKBY				    
+https://youtu.be/IhvN_MxLKBY
+
+CREATE DATABASE MyDemoDB
+
+USE MyDemoDB
+CREATE TABLE employee (id int, name varchar(50), dept varchar(50), age int, salary decimal(18,2), location varchar(40))
+
+INSERT INTO employee (name, dept, age, salary, location) VALUES ('Wayne', 'Programmer', 29, 45000, 'Toronto');
+
+UPDATE employee SET name = 'Wayner', dept = 'Developer', salaray = 50000
+WHERE id = 1
 				    
