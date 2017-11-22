@@ -61,6 +61,7 @@ SELECT state FROM customers;						// returns all rows' state
 SELECT DISTINCT state FROM customers;					// returns only 1 instance of each state from all rows
 
 
+https://youtu.be/nWeW3sCmD2k @ 27:00
 
 SELECT * FROM customers WHERE age < 30
 
@@ -77,6 +78,9 @@ IS NOT DISTINCT FROM
 AS
 
 
+
+CREATE INDEX Cindex
+ON customers(city);
 
 			
 
