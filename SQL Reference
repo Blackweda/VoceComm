@@ -147,7 +147,28 @@ FROM customers;
 SELECT o.id, o.orderDate, c.firstName, c.lastName
 FROM customers AS c, orders AS o;
 
-			
+
+
+
+
+SELECT AVG(age) FROM customers;		// average of the ages
+SELECT MAX(age) FROM customers;
+	   MIN
+	   UCASE firstName			// will return first name of all results in upper case
+	   LCASE
+
+SELECT COUNT(age) FROM customers;	// how many records have ages
+SELECT SUM(age) FROM customers;		// ages totalled up
+
+
+
+SELECT age, COUNT(age)
+FROM customers
+WHERE age > 30
+GROUP BY age
+HAVING COUNT(AGE) >= 2;				// 2 or more customers having the same age
+
+
 
 
 				    
