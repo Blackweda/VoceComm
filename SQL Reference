@@ -25,4 +25,7 @@ INSERT INTO employee (name, dept, age, salary, location) VALUES ('Wayne', 'Progr
 
 UPDATE employee SET name = 'Wayner', dept = 'Developer', salaray = 50000
 WHERE id = 1
+
+
+DELETE FROM employee WHERE id = 1
 				    
