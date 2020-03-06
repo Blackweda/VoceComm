@@ -1,0 +1,43 @@
+public void VolumeCalculator(){
+
+        // check that we have a linked list already started
+        if(momentumStocks_LinkedList.size() > 0){
+
+            // for each stock, go into all its records and gather the volume records and table them
+            for(int i = 0; i < momentumStocks_TickerList.size(); i++){
+
+                List<Integer> VolumeCount = new ArrayList<Integer>();
+                String ticker = momentumStocks_TickerList.get(i).toString();
+                //MomentumStock MS = new MomentumStock("", 0.0, 0.0, 0);
+                List<MomentumStock>momentumStocks_ListTEMP = new ArrayList<MomentumStock>();
+
+                for(int j = momentumStocks_LinkedList.size(); i > 0; i--){
+
+                    // at each linked list entry, we have a full set of Momentum Objects -- copy them
+                    Collections.copy(momentumStocks_LinkedList.get(i), momentumStocks_ListTEMP);
+
+                    // grab only data relevent to the ticker symbol each iteration
+                    for(int k = 0; k < momentumStocks_ListTEMP.size(); k++){
+
+                        if(momentumStocks_ListTEMP.get(k).Ticker == ticker){
+                            VolumeCount.add(momentumStocks_ListTEMP.get(k).Volume);
+                            momentumStocks_ListTEMP.clear();
+                            return; // get out of this loop and on to the next ticker
+                        }
+
+                    }   // end of looking through entire list to find the ticker data we want
+
+                    if(VolumeCount.size() >= 3)
+                        writeCSVFileData(ticker, VolumeCount.get(2).toString(), VolumeCount.get(1).toString(), VolumeCount.get(0).toString(), "",false, 2);
+                    if(VolumeCount.size() == 2)
+                        writeCSVFileData(ticker, VolumeCount.get(1).toString(), VolumeCount.get(0).toString(), "", "",false, 2);
+                    if(VolumeCount.size() == 1)
+                        writeCSVFileData(ticker, VolumeCount.get(0).toString(), "", "", "",false, 2);
+
+                }       // end of looking for all volumes for a single ticker symbol from entire linked list
+
+
+            }
+        }
+
+    }
