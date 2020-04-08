@@ -1,0 +1,682 @@
+package com.holdings.siloaman.krenda;
+
+import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.os.AsyncTask;
+import android.os.Environment;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
+import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class StockWatcherActivity extends AppCompatActivity {
+
+
+    Button TrackingButton, AccountButton;
+
+    // TABLELAYOUT + SIZES
+    int textSize = 20, smallTextSize = 20, mediumTextSize = 20;
+    int leftRowMargin = 5, topRowMargin = 5, rightRowMargin = 5, bottomRowMargin = 5;
+    LinearLayout stockListLayout;
+    TableLayout stockListTable;
+
+
+    List<String> momentumStocks_TickerList;
+    MomentumStock momentumStock;                                                                    // an object containing all ticker data
+    List<MomentumStock> momentumStocks_List;
+
+    private BroadcastReceiver HTMLReceiver;
+    int AutomatedTrackerMode = -404;
+    AsyncTask MARKETWATCHSEARCH;
+    ProgressDialog pd;
+
+    public String[] csvValuesInfo;
+    public String[] csvHeaderInfo;
+    int tickerColumn = -1;
+    int tickerCount = 0;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_stock_watcher);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        EnvironmentDiagnostics("Setting up onCreate");
+
+        momentumStocks_TickerList = new ArrayList<String>();
+        momentumStocks_List = new ArrayList<MomentumStock>();
+
+
+        // Setup Table Layout View
+        stockListLayout = (LinearLayout) findViewById(R.id.StockListLinearLayout);
+        stockListTable = (TableLayout) findViewById(R.id.main_table);
+        stockListTable.setStretchAllColumns(true);
+
+        File openLOGFile = new File(Environment.getExternalStorageDirectory() + "/KRENDA/Krenda_Watcher_File.csv");
+
+        if(!openLOGFile.exists()) {
+            writeCSVFileData("Ticker", "-404.00", "0", "0.00", "0.00", false, 5);
+            writeCSVFileData("NYMT", "-404.00", "0", "0.00", "0.00", false, 5);
+            writeCSVFileData("SDS", "-404.00", "0", "0.00", "0.00", false, 5);
+            writeCSVFileData("AYX", "-404.00", "0", "0.00", "0.00", false, 5);
+            writeCSVFileData("SI=F", "-404.00", "0", "0.00", "0.00", false, 5);
+            //writeCSVFileData("GC=F", "-404.00", "0", "0.00", "0.00", false, 5);
+            EnvironmentDiagnostics("Setting up file of preferred stocks");
+        }
+
+        AutomatedStockTracker(100);
+
+
+    }
+
+    void TickerList() throws FileNotFoundException {
+
+        // LOAD THE CSV DATA OR REDIRECT TO WEBSITE TO DOWNLOAD IT
+        EnvironmentDiagnostics("Entered TickerList()");
+
+        // File openLOGFile = new File(Environment.getExternalStorageDirectory() + "/KRENDA/Krenda_Log_File.csv");
+        File openCSVFile = new File(Environment.getExternalStorageDirectory() + "/KRENDA/Krenda_Watcher_File.csv");
+
+        if(openCSVFile.exists()){
+
+            BufferedReader br = new BufferedReader(new FileReader(openCSVFile));
+
+            try{
+                // Get Header to Determine Ticker or Any Other Value of Importance
+                String csvLine;
+                csvLine = br.readLine();
+                csvHeaderInfo = csvLine.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+
+                for(int i = 0; i < csvHeaderInfo.length; i++){
+                    if(csvHeaderInfo[i].contains("Ticker") || csvHeaderInfo[i].contains("Symbol")){
+                        tickerColumn = i;
+                    }
+                }
+                // Get the remaining values from the CSV
+                // Use the headerCount to grab all values from the appropriate column
+                while((csvLine = br.readLine()) != null){
+
+                    //should handle comma inside quotes
+                    csvValuesInfo = csvLine.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+                    //Splitter.on(Pattern.compile(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"));
+                    momentumStocks_TickerList.add(csvValuesInfo[tickerColumn].replace("\"", ""));      // remove the " " attached
+
+                    try{
+                        tickerCount++;
+                    } catch (Exception e) {
+                        Log.e("Problem: ", e.toString());
+                    }
+                }
+
+            } catch (IOException ex){
+                throw new RuntimeException("Error in reading CSV file: " + ex);
+            }
+            EnvironmentDiagnostics("Attempted to fill mL_TIckerLIst");
+            AutomatedTrackerMode = 200; // just deal with tracking, not getting TickerList()
+
+        }   // END OF READING ZACKS_DATE_.CSV FILE
+
+    }
+
+
+    // THE BIG FIND-ALL DATA PARSER
+    private class MomentumStockObjectCreator extends AsyncTask<Void, Integer, String> {
+        // <Params == INPUT, Progress == UPDATES PASSED TO onProgressUpdate(), Result == WHAT doInBackground RETURNS>
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            pd = new ProgressDialog(StockWatcherActivity.this);
+            pd.setMax(momentumStocks_TickerList.size()); // Progress Dialog Max Value
+            //pd.getProgress();
+            pd.setMessage("Fetching Stock Stats"); // Setting Message
+            pd.setTitle("TICKER TRACKER"); // Setting Title
+            pd.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL); // Progress Dialog Style Horizontal
+            pd.show(); // Display Progress Dialog
+            pd.setCancelable(true);
+
+        }
+
+        @Override
+        protected String doInBackground(Void... params){
+
+            List<String> momentumStocks_TableValueList = new ArrayList<String>();
+            momentumStocks_List.clear();
+
+            String percentumStr;
+            double percentumDouble;
+
+            String currentPriceStr;
+            double priceDouble;
+
+            String volumeStr;
+            int volumeInt;
+
+            String companyNameStr;
+
+            String previousCloseStr;
+            double previousCloseDouble;
+
+            String openPriceStr;
+            double openPriceDouble;
+
+            String timeStamp;
+            boolean TIMESTAMP_VALID;
+
+            String allTickers = "";
+            for(int i = 0; i < momentumStocks_TickerList.size(); i++)
+                allTickers += momentumStocks_TickerList.get(i) + " ";
+
+            writeCSVFileData(allTickers, "0.00", "0", "0.00", "0.00", false, 3);
+
+            for(int i = 0; i < momentumStocks_TickerList.size(); i++) {
+
+                // Initialize search returns to NOT FOUND
+                percentumStr = "-404 (-404.00%)";
+                percentumDouble = -404;
+
+                currentPriceStr = "-404 (-404.00%)";
+                priceDouble = -404;
+
+                volumeStr = "-404 (-404.00%)";
+                volumeInt = -404;
+
+                companyNameStr = "";
+
+                previousCloseStr = "-404";
+                previousCloseDouble = -404;
+
+                openPriceStr = "-404";
+                openPriceDouble = -404;
+
+                timeStamp = "";
+                TIMESTAMP_VALID = false;
+
+                String TK = momentumStocks_TickerList.get(i);
+                String siteURL = "https://finance.yahoo.com/quote/" + TK + "?p=" + TK;
+
+                try {
+
+                    // Connect to URL page
+                    Document doc = Jsoup.connect(siteURL).get();
+
+                    // Get all document span class names + text inside them
+                    Elements spans = doc.getElementsByTag("span");
+                    for (Element span : spans) {
+
+                        // Get Percentum
+                        if (span.className().contains("Trsdu(0.3s)") &&
+                                span.className().contains("Fw(500)") &&
+                                !span.className().contains("D(ib)") &&      // removes After Hours segment
+                                span.text().contains("%")) {
+
+                            percentumStr = span.text();    //buffer.append(span.text());
+
+                            String Divide[] = percentumStr.split(" ");     // isolate the Percentage Portion
+                            percentumStr = Divide[1];
+                            int sign = 1;
+                            Pattern p = Pattern.compile("(\\d+(?:\\.\\d+))");
+                            Matcher m = p.matcher(percentumStr);
+                            while (m.find()) {
+                                percentumDouble = Double.parseDouble(m.group(1));
+                            }
+
+                            if (percentumStr.contains("-")) {
+                                sign = -1;
+                            }
+                            percentumDouble *= (double) sign;
+                            EnvironmentDiagnostics("PercentumDouble for " + TK + ": " + percentumDouble);
+                        }
+
+
+                        // Get Price
+                        if (span.className().contains("Trsdu(0.3s)") &&
+                                span.className().contains("Fw(b)")){
+                            currentPriceStr = span.text();
+                            EnvironmentDiagnostics("Price is: " + currentPriceStr);
+                            if(currentPriceStr.contains(",")) {
+                                currentPriceStr.replace(",", "");
+                                EnvironmentDiagnostics("Replacement is: " + currentPriceStr);
+                            }
+                            priceDouble = Double.parseDouble(currentPriceStr);
+                            EnvironmentDiagnostics("PriceDouble for " + TK + ": " + priceDouble);
+                        }
+                        // end of finding Price
+                        writeCSVFileData("$ of " + momentumStocks_TickerList.get(i) + " = " + currentPriceStr, "","","","",false,3);
+
+                    }   // end of finding Percentum and Price
+
+                    // Get all document td class names + text inside them
+                    momentumStocks_TableValueList.clear();
+                    Elements tables = doc.getElementsByTag("td");
+                    for (Element td : tables) {
+                        // Get All Table Values
+                        momentumStocks_TableValueList.add(td.text());
+                    }
+
+                    // TABLED DATA FROM WEBSITE
+
+                    // Get the volume specifically
+                    for(int j = 0; j < momentumStocks_TableValueList.size(); j++){
+
+                        if(momentumStocks_TableValueList.get(j).startsWith("Vol")) {
+                            volumeStr = momentumStocks_TableValueList.get(j+1).replace(",", "");    // remove commas from 1,234,567 ... else its not numerical
+                            volumeInt = Integer.parseInt(volumeStr);
+                            EnvironmentDiagnostics("VolumeInt for " + TK + ": " + volumeInt);
+                            break;
+                        }
+                    }
+
+
+
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    Toast.makeText(StockWatcherActivity.this, "Could not connect to site", Toast.LENGTH_SHORT);
+                    EnvironmentDiagnostics("error reading");
+                    return "";
+                }
+
+                MomentumStock momentumStock = new MomentumStock(momentumStocks_TickerList.get(i), priceDouble, percentumDouble, volumeInt);
+                EnvironmentDiagnostics("MomentumStock Object creation");
+                momentumStocks_List.add(momentumStock);
+                EnvironmentDiagnostics("MomentumStock added to _List");
+
+                pd.incrementProgressBy(1); // Increment By Value Of 1
+                EnvironmentDiagnostics("Writing MomentumStock details to log file");
+                writeCSVFileData(TK,
+                        currentPriceStr,
+                        Integer.toString(volumeInt),
+                        Double.toString(percentumDouble),
+                        ""/*"BID: " + bidFull + " | " + "ASK: " + askFull*/,
+                        false,
+                        2);
+
+            }
+            EnvironmentDiagnostics("Adding _List to _LinkedList");
+
+
+            // At this point, momentumStocks_List is full of all our stock tickers' data... do something with it!
+
+            return "";
+        }
+
+        @Override
+        protected void onPostExecute(String result){        // can result be a String[] ??
+            super.onPostExecute(result);
+
+            pd.dismiss();
+            PopulateScreen(100);
+        }
+
+    }   // end of MomentumStockObjectCreator
+
+
+    public void PopulateScreen(int mode){
+
+        stockListTable.removeAllViews();    // clear up the table data
+
+
+        String finalSet = "";
+        for(int i = -1; i < momentumStocks_List.size(); i++){     // -1 is the header...
+
+            String tckr = "", tckrlink = "", strVol = "";
+            double prcntm = 0.0, price = 0.0;
+            int vol = 0;
+
+            if(i > -1) {
+
+
+                tckr = momentumStocks_List.get(i).Ticker;
+                price = momentumStocks_List.get(i).Price;
+                prcntm = momentumStocks_List.get(i).Percentage;
+                vol = momentumStocks_List.get(i).Volume;
+                //https://stackoverflow.com/questions/19788113/how-can-i-format-a-string-number-to-have-commas-in-android-edit-field
+                DecimalFormat formatter = new DecimalFormat("#,###,###");
+                strVol = formatter.format(vol);
+
+                tckrlink = "https://finance.yahoo.com/quote/" + tckr + "?p=" + tckr;
+
+            }
+
+            final TextView tv = new TextView(this);
+            tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT,
+                    TableRow.LayoutParams.WRAP_CONTENT));
+            tv.setGravity(Gravity.CENTER);
+            tv.setPadding(5, 15, 0, 15);
+            if (i == -1) {
+                tv.setText("TICKER(" + momentumStocks_TickerList.size() + ")");
+                tv.setBackgroundColor(Color.parseColor("#f0f0f0"));
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize);
+            } else {
+                finalSet = "<a href=" + tckrlink + ">" + tckr + "</a>";
+                tv.setBackgroundColor(Color.parseColor("#f8f8f8"));
+                if(vol != -404 && prcntm > -404.0) {
+                    tv.setText(Html.fromHtml(finalSet));
+                    tv.setMovementMethod(LinkMovementMethod.getInstance());
+                } else {
+                    tv.setText("-----");
+                }
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+            }   // END OF TICKER COLUMN
+
+
+            final TextView tv2 = new TextView(this);
+            tv2.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT,
+                    TableRow.LayoutParams.WRAP_CONTENT));
+            tv2.setGravity(Gravity.CENTER);
+            tv2.setPadding(5, 15, 0, 15);
+            if (i == -1) {
+                tv2.setText("PRICE");
+                tv2.setBackgroundColor(Color.parseColor("#f0f0f0"));
+                tv2.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize);
+            } else {
+                tv2.setBackgroundColor(Color.parseColor("#f8f8f8"));
+                if (vol != -404 && prcntm > -404.0) {
+                    tv2.setText(String.valueOf(price));
+                } else {
+                    tv2.setText("-----");
+                }
+                tv2.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+            }   // END OF PERCENTUM COLUMN
+
+
+            final TextView tv3 = new TextView(this);
+            tv3.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT,
+                    TableRow.LayoutParams.WRAP_CONTENT));
+            tv3.setGravity(Gravity.CENTER);
+            tv3.setPadding(5, 15, 0, 15);
+            if (i == -1) {
+                tv3.setText("PERCENTUM");
+                tv3.setBackgroundColor(Color.parseColor("#f0f0f0"));
+                tv3.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize);
+            } else {
+                tv3.setBackgroundColor(Color.parseColor("#f8f8f8"));
+                if (vol != -404 && prcntm > -404.0) {
+                    tv3.setText(String.valueOf(prcntm) + "%");
+                } else {
+                    tv3.setText("-----");
+                }
+                tv3.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+            }   // END OF PERCENTUM COLUMN
+
+
+            final TextView tv4 = new TextView(this);
+            tv4.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT,
+                    TableRow.LayoutParams.WRAP_CONTENT));
+            tv4.setGravity(Gravity.CENTER);
+            tv4.setPadding(5, 15, 0, 15);
+            if (i == -1) {
+                tv4.setText("VOLUME");
+                tv4.setBackgroundColor(Color.parseColor("#f0f0f0"));
+                tv4.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize);
+            } else {
+                tv4.setBackgroundColor(Color.parseColor("#f8f8f8"));
+                if (vol != -404 && prcntm > -404.0) {
+                    tv4.setText(String.valueOf(strVol));
+                } else {
+                    tv4.setText("-----");
+                }
+                tv4.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+            }   // END OF VOLUME COLUMN
+
+
+            // add table row
+            final TableRow tr = new TableRow(this);
+            tr.setId(i + 1);
+            TableLayout.LayoutParams trParams = new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT);
+            trParams.setMargins(leftRowMargin, topRowMargin, rightRowMargin, bottomRowMargin);
+            tr.setPadding(0,0,0,0);
+            tr.setLayoutParams(trParams);
+            tr.addView(tv);
+            tr.addView(tv2);
+            tr.addView(tv3);
+            tr.addView(tv4);
+
+            stockListTable.addView(tr, trParams);
+
+            if (i > -1) {
+                // add separator row
+                final TableRow trSep = new TableRow(this);
+                TableLayout.LayoutParams trParamsSep = new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
+                        TableLayout.LayoutParams.WRAP_CONTENT);
+                trParamsSep.setMargins(leftRowMargin, topRowMargin, rightRowMargin, bottomRowMargin);
+                trSep.setLayoutParams(trParamsSep);
+                TextView tvSep = new TextView(this);
+                TableRow.LayoutParams tvSepLay = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT,
+                        TableRow.LayoutParams.WRAP_CONTENT);
+                tvSepLay.span = 4;
+                tvSep.setLayoutParams(tvSepLay);
+                tvSep.setBackgroundColor(Color.parseColor("#d9d9d9"));
+                tvSep.setHeight(1);
+                trSep.addView(tvSep);
+                stockListTable.addView(trSep, trParamsSep);
+            }
+
+        } // end of SORTATION INTO TABLE
+
+    }   // end of PopulateScreen()
+
+
+    public void AutomatedStockTracker(int mode){
+
+        AutomatedTrackerMode = mode;
+        EnvironmentDiagnostics("Entered AutomatedStockTracker code: " + mode);
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_TIME_TICK);        // every minute
+        HTMLReceiver = new BroadcastReceiver(){
+
+            @Override
+            public void onReceive(Context context, Intent intent){
+
+                if(AutomatedTrackerMode == 200){
+                    MARKETWATCHSEARCH = new MomentumStockObjectCreator().execute();
+                }
+
+                if(AutomatedTrackerMode == 100){
+
+                    try{
+                        EnvironmentDiagnostics("try statement TIckerlist()");
+                        TickerList();
+                    } catch (Exception e) {
+                        Log.e("Problem: ", e.toString());
+                    }
+
+                    EnvironmentDiagnostics("Aout to attempt marketSearch");
+                    MARKETWATCHSEARCH = new MomentumStockObjectCreator().execute();
+                }
+
+
+
+            }   // end of onReceive method
+        };  // end of HTMLReceiver instantiation
+
+
+
+        if(mode == 100) {
+            registerReceiver(HTMLReceiver, intentFilter);
+        }
+        else if(mode == 200) {  // ANALYSIS ONLY MODE
+            registerReceiver(HTMLReceiver, intentFilter);
+        }
+        else if(mode == -100){
+            // to prevent crashing
+            registerReceiver(HTMLReceiver, intentFilter);
+            unregisterReceiver(HTMLReceiver);
+
+        }
+
+    }   // end of AutomatedStockTracker()
+
+
+    static void writeCSVFileData(String Ticker, String Price, String Shares, String AssetBalance, String CashBalance, boolean Active, int LogType) {
+
+        /*
+        CSV Set Up:
+
+        Purchase:
+            Ticker, Purchase Price, Shares, Date Bought, Asset Balance, Cash Balance, StillinPlay? (Y/N)
+            AKER, 0.35, 2300, 2018-11-21, 805.00, 21.00, true
+            While in play, no other transactions will be made
+
+        Sale:
+            Ticker, Sold Price, Shares, Date Sold, Asset Balance, Cash Balance, StillinPlay? (Y/N)
+            AKER, 0.38, 0, 2018-11-21, 0.00, 895.00, false
+            While out of play, new transactions can be made
+
+            writeCSVFileData("AKER", 0.35, 2300, 805.00, 21.00, true, 1);
+        */
+
+        // GET CURRENT DATE INFO
+
+        int timeYear = Calendar.getInstance().get(Calendar.YEAR);
+        int timeMonth = Calendar.getInstance().get(Calendar.MONTH);
+        int timeDayDate = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+
+        String  zeroYear, zeroMonth, zeroDayDate;
+
+        timeMonth += 1;         // for some reason.. Month starts at 0 - 11
+        if(timeMonth < 10)
+            zeroMonth = String.format("%02d", timeMonth);
+        else
+            zeroMonth = Integer.toString(timeMonth);
+
+        if(timeDayDate < 10)
+            zeroDayDate = String.format("%02d", timeDayDate);
+        else
+            zeroDayDate = Integer.toString(timeDayDate);
+
+        zeroYear = Integer.toString(timeYear);
+
+        /******************************************************************************************/
+
+        String DAILY_GRAPHING_FILENAME = "zacks_dailytracks_" + zeroYear + "-" + zeroMonth + "-" + zeroDayDate + ".csv";
+        String LOG_FILENAME = "Krenda_Log_File.csv";
+        String TRACKING_FILENAME = "Krenda_Tracking_File.csv";
+        String TEMP_LOG_FILENAME = "Krenda_Temp_Log_File.csv";
+        String TEMP_WATCHER_FILENAME = "Krenda_Watcher_File.csv";
+
+        String IsActive = "---";
+        if(Active == true)
+            IsActive = "YES";
+        else
+            IsActive = "NO";
+
+        DateFormat df = new SimpleDateFormat("yyyy/MM/dd");
+        Date DateStamp = new Date();
+
+        String LOG_ENTRY =      Ticker
+                + ","
+                + Price
+                + ","
+                + Shares
+                + ","
+                + DateStamp
+                + ","
+                + AssetBalance
+                + ","
+                + CashBalance
+                + ","
+                + IsActive
+                + "\r\n";
+
+        try{
+
+            File ROOT = new File(Environment.getExternalStorageDirectory() + "/KRENDA");
+
+            // LOGTYPES:    1 = Buy/Sell Log       2 = Daily Tracker     3 = Debugging Log
+            if(LogType == 1) {     // whether buying or selling a stock, the price is never ZERO
+                File LOG_FILE = new File(ROOT, LOG_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+            if(LogType == 2) {     // whether buying or selling a stock, the price is never ZERO
+                File LOG_FILE = new File(ROOT, DAILY_GRAPHING_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+            // TODO: determine the right flag for updating log file or updating tracking list
+            // If we are updating the secondary temporary LOG_FILE
+            if(LogType == 3) {     // since buying/selling is never ZERO, this case means its for Tracking purposes.
+                File LOG_FILE = new File(ROOT, TRACKING_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+
+            if(LogType == 4) {
+                File LOG_FILE = new File(ROOT, TEMP_LOG_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+            if(LogType == 5) {
+                File LOG_FILE = new File(ROOT, TEMP_WATCHER_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    } // END OF WRITEFILEDATA
+
+
+    public void EnvironmentDiagnostics(String StepByStep){
+
+        String DiagnosticsLog = StepByStep;
+        writeCSVFileData(DiagnosticsLog, "0.00", "0", "0.00", "0.00",true, 3);
+    }
+
+
+}
