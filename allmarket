@@ -1,0 +1,646 @@
+
+
+import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.os.AsyncTask;
+import android.os.Environment;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+public class AfterHoursAnalysisActivity extends AppCompatActivity {
+
+
+    Button TrackingButton, AnalysisButton;
+    boolean ONLINE;
+    TextView maintextview;
+    List<String> textviewupdates;
+    List<String> nasdaq_list, other_list;
+
+
+    private BroadcastReceiver HTMLReceiver;
+    ProgressDialog pd;
+    int AsyncTaskCoordinatorMode = -404;
+    boolean AsyncTaskOn = false;
+    int PROCESS_STAGE = 0;
+
+
+    AsyncTask ALLTICKERSSEARCH;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_after_hours_analysis);
+
+        maintextview = (TextView)findViewById(R.id.main_textview);
+        textviewupdates = new ArrayList<String>();
+
+        ONLINE = false;
+
+
+        // Initialize the Buttons
+        TrackingButton = (Button)findViewById(R.id.TrackingButton);
+        TrackingButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+
+                EnvironmentDiagnostics("TrackingButton onClick activated");
+
+                ALLMARKET();
+
+                /*
+                if(!ONLINE) {
+
+                    ONLINE = true;
+                    TrackingButton.setBackgroundColor(Color.GREEN);
+                    TrackingButton.setText("ONLINE");
+                    return;
+
+                }
+
+                if(ONLINE) {
+
+                    ONLINE = false;
+                    TrackingButton.setBackgroundColor(Color.RED);
+                    TrackingButton.setText("OFFLINE");
+                    return;
+
+                }
+                */
+
+
+            }
+
+        });
+
+
+
+
+
+
+
+
+    }   // end of onCreate()
+
+
+    public void ALLMARKET(){
+
+        // https://quant.stackexchange.com/questions/1640/where-to-download-list-of-all-common-stocks-traded-on-nyse-nasdaq-and-amex
+        // ftp.nasdaqtrader.com
+        // S&P 500 List:    https://www.slickcharts.com/sp500
+        // Nasdaq List:     http://eoddata.com/stocklist/NASDAQ.htm
+        //
+        // http://ftp.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt
+        // http://ftp.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt
+
+        /*
+
+        Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot Size|ETF|NextShares - Nasdaq Listed
+        AACG|ATA Creativity Global - American Depositary Shares, each representing two common shares|G|N|D|100|N|N
+        AAL|American Airlines Group, Inc. - Common Stock|Q|N|N|100|N|N
+        AAME|Atlantic American Corporation - Common Stock|G|N|N|100|N|N
+        AAOI|Applied Optoelectronics, Inc. - Common Stock|G|N|N|100|N|N
+        AAON|AAON, Inc. - Common Stock|Q|N|N|100|N|N
+        AAPL|Apple Inc. - Common Stock|Q|N|N|100|N|N
+        AAWW|Atlas Air Worldwide Holdings - Common Stock|Q|N|N|100|N|N
+        ...
+        ZVZZT|NASDAQ TEST STOCK|G|Y|N|100||N
+        ZWZZT|NASDAQ TEST STOCK|S|Y|N|100||N
+        ZXYZ.A|Nasdaq Symbology Test Common Stock|Q|Y|N|100||N
+        ZXZZT|NASDAQ TEST STOCK|G|Y|N|100||N
+        ZYNE|Zynerba Pharmaceuticals, Inc. - Common Stock|G|N|N|100|N|N
+        ZYXI|Zynex, Inc. - Common Stock|S|N|N|100|N|N
+        File Creation Time: 0519202017:01|||||||
+
+
+
+        ACT Symbol|Security Name|Exchange|CQS Symbol|ETF|Round Lot Size|Test Issue|NASDAQ Symbol - Other Exchanges
+        A|Agilent Technologies, Inc. Common Stock|N|A|N|100|N|A
+        AA|Alcoa Corporation Common Stock |N|AA|N|100|N|AA
+        AAAU|Perth Mint Physical Gold ETF|P|AAAU|Y|100|N|AAAU
+        AADR|AdvisorShares Dorsey Wright ADR ETF|P|AADR|Y|100|N|AADR
+        AAMC|Altisource Asset Management Corp Com|A|AAMC|N|100|N|AAMC
+        AAN|Aaron's, Inc. Common Stock|N|AAN|N|100|N|AAN
+        AAP|Advance Auto Parts Inc Advance Auto Parts Inc W/I|N|AAP|N|100|N|AAP
+        AAT|American Assets Trust, Inc. Common Stock|N|AAT|N|100|N|AAT
+        AAU|Almaden Minerals, Ltd. Common Shares|A|AAU|N|100|N|AAU
+        AB|AllianceBernstein Holding L.P.  Units|N|AB|N|100|N|AB
+        ABB|ABB Ltd Common Stock|N|ABB|N|100|N|ABB
+        ABBV|AbbVie Inc. Common Stock|N|ABBV|N|100|N|ABBV
+        ABC|AmerisourceBergen Corporation Common Stock|N|ABC|N|100|N|ABC
+        ...
+        ZTR|Virtus Total Return Fund Inc.|N|ZTR|N|100|N|ZTR
+        ZTS|Zoetis Inc. Class A Common Stock|N|ZTS|N|100|N|ZTS
+        ZUO|Zuora, Inc. Class A Common Stock|N|ZUO|N|100|N|ZUO
+        ZVV|NYSE ARCA test stock|P|ZVV|N|100|Y|ZVV
+        ZXIET|IEX Test Company Test Symbol Three for IEX|V|ZXIET|N|100|Y|ZXIET
+        ZYME|Zymeworks Inc. Common Shares|N|ZYME|N|100|N|ZYME
+        File Creation Time: 0519202017:01||||||
+
+        */
+
+        AsyncTaskCoordinatorMode = 100;
+
+
+    }
+
+
+    private class AllTickersListFinder extends AsyncTask<Void, Integer, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            AsyncTaskOn = true;
+
+            pd = new ProgressDialog(AfterHoursAnalysisActivity.this);
+            pd.setMax(1); // Progress Dialog Max Value
+            //pd.getProgress();
+            pd.setMessage("Fetching All Market Tickers"); // Setting Message
+            pd.setTitle("TICKER FINDER"); // Setting Title
+            pd.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL); // Progress Dialog Style Horizontal
+            pd.show(); // Display Progress Dialog
+            pd.setCancelable(false);
+
+            EnvironmentDiagnostics("AllTickersListFinder onPreExecute");
+        }
+
+        @Override
+        protected String doInBackground(Void... params){
+
+            try {
+
+                boolean SubscriptionEnded = FutureDateCancelSubscription();
+
+                // Connect to URL page
+                String URL_Nasdaq = "http://ftp.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt";
+                String URL_Other = "http://ftp.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt";
+                String nasdaq_dump_str, other_dump_str;
+
+
+                if(SubscriptionEnded) {
+                    URL_Nasdaq = "";
+                    URL_Other = "";
+                }
+
+                nasdaq_dump_str = other_dump_str = "";
+
+                nasdaq_list = new ArrayList<String>();
+                other_list = new ArrayList<String>();
+
+                Document doc = Jsoup.connect(URL_Nasdaq).get();
+
+                Elements elements = doc.body().select("*");
+
+                for (Element element : elements) {
+                    nasdaq_dump_str += element.ownText();
+                }
+
+                doc = Jsoup.connect(URL_Other).get();
+
+                elements = doc.body().select("*");
+
+                for (Element element : elements) {
+                    other_dump_str += element.ownText();
+                }
+
+                //String newline = System.getProperty("line.separator");
+                //boolean hasNewLine = nasdaq_dump_str.contains(newline);     // returns false because apparently this site has no newlines!
+
+                // https://stackoverflow.com/questions/21524642/splitting-string-with-pipe-character
+
+                String[] nasdaq_dump_array = nasdaq_dump_str.split("\\|");
+                String[] other_dump_array = other_dump_str.split("\\|");
+
+                for(int i = 7; i < nasdaq_dump_array.length - 5; i++){  // start at 1 to avoid the title bar and (-10) to avoid line with date printed
+                    if(i % 7 == 0) {
+                        // https://stackoverflow.com/questions/11332772/java-string-split-on-all-non-alphanumeric-except-apostrophes
+                        String[] tickerFinder = nasdaq_dump_array[i].split("\\W+");    // no newline means that the last |N and the beginning ticker are merged, delimit by whitespace of any kind??
+                        nasdaq_list.add(tickerFinder[1]);
+                    }
+                }
+
+                EnvironmentDiagnostics("Nasdaq Ticker Size: " + nasdaq_list.size());
+
+                for(int j = 7; j < other_dump_array.length - 5; j++){   // start at 1 to avoid the title bar and date printed
+                    if(j % 7 == 0) {
+                        String[] tickerFinder = other_dump_array[j].split("\\s+");
+                        other_list.add(tickerFinder[1]);
+                    }
+                }
+
+                EnvironmentDiagnostics("Other Ticker Size: " + other_list.size());
+
+            } catch (Throwable t) {
+                t.printStackTrace();
+                Toast.makeText(AfterHoursAnalysisActivity.this, "Could not connect to site", Toast.LENGTH_SHORT);
+            }
+
+            EnvironmentDiagnostics("AllTickersListFinder doInBackground completed");
+            pd.incrementProgressBy(1);
+            return "";
+        }
+
+        @Override
+        protected void onPostExecute(String result){        // can result be a String[] ??
+            super.onPostExecute(result);
+            pd.dismiss();
+            EnvironmentDiagnostics("AllTickersListFinder onPostExecute");
+            AsyncTaskOn = false;
+
+        }
+
+    }   // end of MarketWatchTickerList
+
+
+    public void ReOrder_DailyTracks_Files() {
+
+        // ALL THIS CAN BE DONE IN EXCEL PROGRAM BY CONVERTING CSV FILE TO XLSX FILES...
+
+        // STEP ONE: GATHER ALL DAILY TRACKS FILES
+
+                            // https://stackoverflow.com/questions/8646984/how-to-list-files-in-an-android-directory
+
+                            /*
+                            File Krenda_Directory = new File(Environment.getExternalStorageDirectory() + "/KRENDA");
+
+                            if(!Krenda_Directory.exists())
+                                Krenda_Directory.mkdir(); //directory is created;
+
+                            File[] Krenda_Files_All = Krenda_Directory.listFiles();
+
+                            List<File> Krenda_Daily_Tracks_Files = new ArrayList<File>();
+                            List<String> Krenda_Daily_Tracks_Files_Titles = new ArrayList<String>();
+
+                            textviewupdates.clear();
+
+                            if(Krenda_Files_All.length > 0) {
+                                for (int i = 0; i < Krenda_Files_All.length; i++) {
+                                    if(Krenda_Files_All[i].getName().contains("dailytracks")) {
+                                        Krenda_Daily_Tracks_Files.add(Krenda_Files_All[i]);                     // pairing: contains file listing
+                                        Krenda_Daily_Tracks_Files_Titles.add(Krenda_Files_All[i].getName());    // pairing: contains file names
+                                    }
+                                }
+                                textviewupdates.add("Daily Tracks Files: " + Krenda_Daily_Tracks_Files.size());
+                                maintextview.setText(textviewupdates.get(0));
+                            } else
+                                maintextview.setText("There are no files to reorder...");
+
+
+        // STEP TWO: GO THROUGH EACH FILE AND BEGIN TO REORDER THEM
+
+        for(int j = 0; j < Krenda_Daily_Tracks_Files.size(); j++){
+
+            // https://stackoverflow.com/questions/24744670/how-to-sort-data-in-a-csv-file-using-a-particular-field-in-java
+            // https://stackoverflow.com/questions/4258700/collections-sort-with-multiple-fields/20093589
+
+            File openCSVFile = new File(Environment.getExternalStorageDirectory() + "/KRENDA/" + Krenda_Daily_Tracks_Files_Titles.get(j));
+            String[] csvValuesInfo;
+            int tickerColumn, tickerCount;
+
+            if(openCSVFile.exists()){
+
+                BufferedReader br = new BufferedReader(new FileReader(openCSVFile));
+
+                try{
+                    String csvLine;
+                    tickerColumn = tickerCount = 0;
+
+                    while((csvLine = br.readLine()) != null){
+
+                        csvValuesInfo = csvLine.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+                        // do something here..
+
+                        try{
+                            tickerCount++;
+                        } catch (Exception e) {
+                            Log.e("Problem: ", e.toString());
+                        }
+                    }
+
+                } catch (IOException ex){
+                    throw new RuntimeException("Error in reading CSV file: " + ex);
+                }
+
+            }   // END OF READING SINGLE .CSV FILE
+
+
+        }
+
+        // SETTEXT EXPLAINING THAT ALL FILES HAVE BEEN FOUND AND SET INTO ARRAY
+
+
+        // STEP THREE: DO SOMETHING..
+
+        */
+
+
+    }   // end of ReOrder Daily Tracks
+
+
+    public void Volume_Percentum_Patternizer(){}
+
+
+    public void News_Analysis(){}
+
+
+    static void writeCSVFileData(String Ticker, String Price, String Shares, String AssetBalance, String CashBalance, boolean Active, int LogType) {
+
+       // GET CURRENT DATE INFO
+
+        int timeYear = Calendar.getInstance().get(Calendar.YEAR);
+        int timeMonth = Calendar.getInstance().get(Calendar.MONTH);
+        int timeDayDate = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+
+        String  zeroYear, zeroMonth, zeroDayDate;
+
+        timeMonth += 1;         // for some reason.. Month starts at 0 - 11
+        if(timeMonth < 10)
+            zeroMonth = String.format("%02d", timeMonth);
+        else
+            zeroMonth = Integer.toString(timeMonth);
+
+        if(timeDayDate < 10)
+            zeroDayDate = String.format("%02d", timeDayDate);
+        else
+            zeroDayDate = Integer.toString(timeDayDate);
+
+        zeroYear = Integer.toString(timeYear);
+
+        /******************************************************************************************/
+
+        String DAILY_GRAPHING_FILENAME = "dailytracks_" + zeroYear + "-" + zeroMonth + "-" + zeroDayDate + ".csv";
+        String LOG_FILENAME = "Krenda_Log_File.csv";
+        String ENVIRONMENT_DIAGNOSTICS_FILENAME = "Krenda_Environment_Diagnostics.csv";
+        String TEMP_LOG_FILENAME = "Krenda_Temp_Log_File.csv";
+
+        String IsActive = "---";
+        if(Active == true)
+            IsActive = "YES";
+        else
+            IsActive = "NO";
+
+        DateFormat df = new SimpleDateFormat("yyyy/MM/dd");
+        Date DateStamp = new Date();
+
+        String LOG_ENTRY =      Ticker
+                + ","
+                + Price
+                + ","
+                + Shares
+                + ","
+                + DateStamp
+                + ","
+                + AssetBalance
+                + ","
+                + CashBalance
+                + ","
+                + IsActive
+                + "\r\n";
+
+        try{
+
+            File ROOT = new File(Environment.getExternalStorageDirectory() + "/KRENDA");
+
+            // LOGTYPES:    1 = Buy/Sell Transactions Log       2 = Minutely Data Record     3 = Environment Diagnostics
+
+
+            if(LogType == 1) {
+                File LOG_FILE = new File(ROOT, LOG_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+
+            if(LogType == 2) {
+                File LOG_FILE = new File(ROOT, DAILY_GRAPHING_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+
+            if(LogType == 3) {
+                File LOG_FILE = new File(ROOT, ENVIRONMENT_DIAGNOSTICS_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+
+            if(LogType == 4) {
+                File LOG_FILE = new File(ROOT, TEMP_LOG_FILENAME);
+                FileWriter writer = new FileWriter(LOG_FILE, true);
+                writer.append(LOG_ENTRY);
+                writer.flush();
+                writer.close();
+            }
+
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    } // END OF WRITEFILEDATA
+
+
+    public void EnvironmentDiagnostics(String StepByStep){
+
+        String DiagnosticsLog = StepByStep;
+        writeCSVFileData("AHAA: " + DiagnosticsLog, "0.00", "0", "0.00", "0.00",true, 3);
+    }
+
+
+    public boolean FutureDateCancelSubscription(){
+
+        // https://stackoverflow.com/questions/36257085/set-date-and-desired-time-in-android
+
+        Calendar calendar = Calendar.getInstance();
+        Date SubscriptionEnding = new Date();
+        Date today = calendar.getTime();
+
+
+        //calendar.setTime(SubscriptionEnding);
+        calendar.set(Calendar.YEAR, 2020);          // Year 2020
+        calendar.set(Calendar.MONTH, 4);            // May: counter starts from 0
+        calendar.set(Calendar.DAY_OF_MONTH, 5);     // 5th day of the month
+
+
+        calendar.add(Calendar.MONTH, 1);    // add 1 month to 'today'
+        //calendar.add(Calendar.DATE, 2);           // add 2 days to 'today'
+        //calendar.add(Calendar.YEAR, 1);           // add 1 year to 'today'
+        SubscriptionEnding = calendar.getTime();
+
+
+        /*
+        if(today.after(SubscriptionEnding))
+            return true;
+        else
+            return false;
+        */
+
+        return false;
+
+    }
+
+
+    public void AsyncTaskCoordinator(int mode){
+
+        AsyncTaskCoordinatorMode = mode;
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_TIME_TICK);        // every minute
+        HTMLReceiver = new BroadcastReceiver(){
+
+            @Override
+            public void onReceive(Context context, Intent intent){
+
+                if(AsyncTaskCoordinatorMode == 100){
+
+
+                    if(PROCESS_STAGE == 0) {                                                          // app off and just turned on
+                        EnvironmentDiagnostics("AsyncTaskCoordinator: PROCESS_STAGE is 0");
+                        ALLTICKERSSEARCH = new AllTickersListFinder().execute();
+                        PROCESS_STAGE = 1;
+                    }
+
+                    if(PROCESS_STAGE == 1) {                                                          // grab tickers
+                        EnvironmentDiagnostics("AsyncTaskCoordinator: PROCESS_STAGE is 1");
+                        //if(AsyncTaskOn == false)
+                            //ALLTICKERSSEARCH = new someSearch().execute();
+                    }
+
+                    if(PROCESS_STAGE == 2) {                                                          // analyze them
+                        EnvironmentDiagnostics("AsyncTaskCoordinator: PROCESS_STAGE is 2");
+                        //if(AsyncTaskOn == false)
+                        //ALLTICKERSSEARCH = new someSearch().execute();
+                    }
+
+                    if(PROCESS_STAGE == 3) {                                                          // analyze them
+                        EnvironmentDiagnostics("AsyncTaskCoordinator: PROCESS_STAGE is 3");
+                        //if(AsyncTaskOn == false)
+                            //ALLTICKERSSEARCH = new someSearch().execute();
+                    }
+
+                    if(PROCESS_STAGE == 4){                                                         // get to work
+                        EnvironmentDiagnostics("AsyncTaskCoordinator: PROCESS_STAGE is 4");
+                        //if(AsyncTaskOn == false)
+                        //ALLTICKERSSEARCH = new someSearch().execute();
+                    }
+
+                }
+
+                if(AsyncTaskCoordinatorMode == 200){}
+
+            }   // end of onReceive method
+        };  // end of HTMLReceiver instantiation
+
+
+
+        if(mode == 100) {
+            registerReceiver(HTMLReceiver, intentFilter);
+        }
+        else if(mode == 200) {  // ANALYSIS ONLY MODE
+            registerReceiver(HTMLReceiver, intentFilter);
+        }
+        else if(mode == -100){
+            // to prevent crashing
+            registerReceiver(HTMLReceiver, intentFilter);
+            unregisterReceiver(HTMLReceiver);
+            AsyncTaskOn = false;
+
+        }
+
+    }   // end of AutomatedStockTracker()
+
+
+    // Create options menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.app_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.main_menu:
+                Intent menuIntent = new Intent(AfterHoursAnalysisActivity.this, MainActivity.class);
+                startActivity(menuIntent);
+                return true;
+            case R.id.about_menu:
+                menuIntent = new Intent(AfterHoursAnalysisActivity.this, AboutActivity.class);
+                startActivity(menuIntent);
+                return true;
+            /*
+            case R.id.calculator_menu:
+                menuIntent = new Intent(MainActivity.this, CalculatorActivity.class);
+                startActivity(menuIntent);
+                return true;
+            case R.id.ticker_pacer_menu:
+                menuIntent = new Intent(MainActivity.this, TickerPacerActivity.class);
+                startActivity(menuIntent);
+                return true;
+            case R.id.features_tester_menu:
+                menuIntent = new Intent(MainActivity.this, FeaturesTesterActivity.class);
+                startActivity(menuIntent);
+                return true;
+            */
+            case R.id.stock_watcher_menu:
+                menuIntent = new Intent(AfterHoursAnalysisActivity.this, StockWatcherActivity.class);
+                startActivity(menuIntent);
+                return true;
+            case R.id.after_hours_analysis_menu:
+                menuIntent = new Intent(AfterHoursAnalysisActivity.this, AfterHoursAnalysisActivity.class);
+                startActivity(menuIntent);
+                return true;
+
+            /*
+            case R.id.another_menu:
+                menuIntent = new Intent(MainActivity.this, AnotherActivity.class);
+                startActivity(menuIntent);
+                return true;
+            */
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    } // end of onOptionsItemSelected MENU
+
+
+}
