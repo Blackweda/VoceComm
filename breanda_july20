@@ -1,0 +1,381 @@
+package com.google.chrome.brenda;
+
+import android.Manifest;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+
+public class MainActivity extends AppCompatActivity implements RecognitionListener {
+    //https://stackoverflow.com/questions/29199891/cannot-resolve-symbol-appcompatactivity
+
+    // https://medium.com/better-programming/implement-continuous-speech-recognition-on-android-1dd2f4b562fd
+    // https://developer.android.com/guide/components/processes-and-threads
+    // https://stackoverflow.com/questions/4658376/how-to-know-when-tts-is-finished
+    // https://github.com/SharmaNishant/MobIVRS
+    // https://www.codeproject.com/Articles/821839/A-Beginners-Guide-to-Working-With-Speech-and-Audio
+    // https://developer.android.com/reference/android/speech/RecognitionService
+    // https://alvinalexander.com/java/jwarehouse/android/core/java/android/speech/RecognitionService.java.shtml
+    // https://www.sitepoint.com/using-android-text-to-speech-to-create-a-smart-assistant/
+    // https://github.com/sitepoint-editors/SpeechApplication/blob/master/app/src/main/java/com/example/theodhor/speechapplication/MainActivity.java
+    // https://stackoverflow.com/questions/20296792/tts-utteranceprogresslistener-not-being-called
+    // https://www.truiton.com/2014/06/android-speech-recognition-without-dialog-custom-activity/
+    // https://github.com/somil55/Android-Continuous-SpeechRecognition/blob/master/app/src/main/java/com/example/divyansh/googleapivoice/MainActivity.java
+
+
+    private TextToSpeech tts;
+    private ArrayList<String> questions;
+    private String name, surname, age, asName;
+    private SharedPreferences preferences;
+    private SharedPreferences.Editor editor;
+    private static final String PREFS = "prefs";
+    private static final String NEW = "new";
+    private static final String NAME = "name";
+    private static final String AGE = "age";
+    private static final String AS_NAME = "as_name";
+
+    EditText editText;
+    int count = 0;
+    SpeechRecognizer mSpeechRecognizer;
+    Intent mSpeechRecognizerIntent;
+
+    private static final int REQUEST_RECORD_PERMISSION = 100;
+    public TextView returnedText;
+    private ToggleButton toggleButton;
+    private ProgressBar progressBar;
+    private SpeechRecognizer speech = null;
+    private Intent recognizerIntent;
+    private String LOG_TAG = "VoiceRecognitionActivity";
+
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+
+        // get tts and utterancecompete to work!!!
+
+        // Implement Text to speech feature / set listener to the TTS engine
+        tts = new TextToSpeech(this, new TTSInitListener());
+        tts.setOnUtteranceProgressListener(new TTSUtteranceListener());
+
+        //progressBar.setVisibility(View.INVISIBLE);    // https://stackoverflow.com/questions/50227470/startb-setvisibilityview-visible-crashes-on-android-studio
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+
+        returnedText = (TextView)findViewById(R.id.textView);
+
+        speech = SpeechRecognizer.createSpeechRecognizer(this);
+        //Log.i(LOG_TAG, "isRecognitionAvailable: " + SpeechRecognizer.isRecognitionAvailable(this));
+        speech.setRecognitionListener(this);
+        recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,
+                "en");
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+
+
+        findViewById(R.id.microphoneButton).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                /*
+                HashMap<String, String> map = new HashMap<String, String>();
+                map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "UniqueID");
+                tts.speak("Test Number: " + count, TextToSpeech.QUEUE_FLUSH, map);
+                */
+                /*
+                ActivityCompat.requestPermissions
+                        (MainActivity.this,
+                                new String[]{Manifest.permission.RECORD_AUDIO},
+                                REQUEST_RECORD_PERMISSION);
+                */
+
+            }
+        });
+
+        toggleButton = (ToggleButton)findViewById(R.id.toggleButton);
+        toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+
+                if (isChecked) {
+                    //progressBar.setVisibility(View.VISIBLE);
+                    progressBar.setIndeterminate(true);
+                    ActivityCompat.requestPermissions
+                            (MainActivity.this,
+                                    new String[]{Manifest.permission.RECORD_AUDIO},
+                                    REQUEST_RECORD_PERMISSION);
+                } else {
+                    progressBar.setIndeterminate(false);
+                    //progressBar.setVisibility(View.INVISIBLE);
+                    speech.stopListening();
+                }
+
+            }
+
+        });
+
+
+
+
+
+
+    }   // end of onCreate()
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_RECORD_PERMISSION:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    speech.startListening(recognizerIntent);
+                } else {
+                    //Toast.makeText(MainActivity.this, "Permission Denied!", Toast
+                    //        .LENGTH_SHORT).show();
+                }
+        }
+    }
+
+    /**********************************************************************************************/
+    class TTSInitListener implements TextToSpeech.OnInitListener {
+
+        @Override
+        public void onInit(int status) {
+
+            if (status == TextToSpeech.SUCCESS) {
+                tts.setLanguage(Locale.getDefault());
+
+            } else {
+                tts = null;
+            }
+        }
+    }
+
+    class TTSUtteranceListener extends UtteranceProgressListener {
+
+        @Override
+        public void onDone(String utteranceId) {
+            if (utteranceId.length() > 0) {
+                count++;
+
+                // TODO: find way to activate togglebutton actions!!
+                progressBar.setIndeterminate(true);
+                ActivityCompat.requestPermissions
+                        (MainActivity.this,
+                                new String[]{Manifest.permission.RECORD_AUDIO},
+                                REQUEST_RECORD_PERMISSION);
+
+
+            } else {
+
+            }
+
+        }
+
+        @Override
+        public void onError(String utteranceId) { }
+
+        @Override
+        public void onStart(String utteranceId) { }
+    }
+    /**********************************************************************************************/
+    /**********************************************************************************************/
+    public void Speech(){
+
+        // https://www.truiton.com/2014/06/android-speech-recognition-without-dialog-custom-activity/
+
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something");
+        try {
+            startActivityForResult( i, 100);
+        } catch (ActivityNotFoundException a) {
+            Toast.makeText(MainActivity.this, "Your device doesn't support Speech Recognition", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == 100){
+            if (resultCode == RESULT_OK && null != data) {
+                ArrayList<String> res = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                String inSpeech = res.get(0);
+                //editText.setText(inSpeech);
+                //returnedText.setText(inSpeech);
+
+                //HashMap<String, String> map = new HashMap<String, String>();
+                //map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "UniqueID");
+                //tts.speak(editText.getText().toString(), TextToSpeech.QUEUE_FLUSH, map);
+                //recognition(inSpeech);
+            }
+        }
+    }
+    /**********************************************************************************************/
+    /**********************************************************************************************/
+    @Override
+    public void onBeginningOfSpeech() {
+        Log.i(LOG_TAG, "onBeginningOfSpeech");
+        progressBar.setIndeterminate(false);
+        progressBar.setMax(10);
+    }
+    @Override
+    public void onBufferReceived(byte[] buffer) {
+        Log.i(LOG_TAG, "onBufferReceived: " + buffer);
+    }
+    @Override
+    public void onEndOfSpeech() {
+        Log.i(LOG_TAG, "onEndOfSpeech");
+        progressBar.setIndeterminate(true);
+        toggleButton.setChecked(false);
+    }
+    @Override
+    public void onError(int errorCode) {
+        String errorMessage = getErrorText(errorCode);
+        Log.d(LOG_TAG, "FAILED " + errorMessage);
+        //editText.setText(errorMessage);
+        returnedText.setText(errorMessage);
+        toggleButton.setChecked(false);
+    }
+    @Override
+    public void onEvent(int arg0, Bundle arg1) {
+        Log.i(LOG_TAG, "onEvent");
+    }
+    @Override
+    public void onPartialResults(Bundle arg0) {
+        Log.i(LOG_TAG, "onPartialResults");
+    }
+    @Override
+    public void onReadyForSpeech(Bundle arg0) {
+        Log.i(LOG_TAG, "onReadyForSpeech");
+    }
+    @Override
+    public void onResults(Bundle results) {
+
+        // WORKING
+        Log.i(LOG_TAG, "onResults");
+        ArrayList<String> matches = results
+                .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        String text = "";
+
+        //for (String result : matches)
+        //    text += result + "\n";
+        text = matches.get(0);
+        //editText.setText(text);       // TODO: trying to change the edittext crashes app!!!
+        returnedText.setText(text);
+
+        //*************************************************//
+
+        // TODO: replace with function that analyses what's said and decides next course of action
+
+        HashMap<String, String> map = new HashMap<String, String>();
+        map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "UniqueID");
+        tts.speak("You said: " + returnedText.getText().toString(), TextToSpeech.QUEUE_FLUSH, map); // just saying + returnedText gives the array pointer details
+
+
+
+    }
+    @Override
+    public void onRmsChanged(float rmsdB) {
+        Log.i(LOG_TAG, "onRmsChanged: " + rmsdB);
+        progressBar.setProgress((int) rmsdB);
+    }
+    public static String getErrorText(int errorCode) {
+        String message;
+        switch (errorCode) {
+            case SpeechRecognizer.ERROR_AUDIO:
+                message = "Audio recording error";
+                break;
+            case SpeechRecognizer.ERROR_CLIENT:
+                message = "Client side error";
+                break;
+            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                message = "Insufficient permissions";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK:
+                message = "Network error";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                message = "Network timeout";
+                break;
+            case SpeechRecognizer.ERROR_NO_MATCH:
+                message = "No match";
+                break;
+            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                message = "RecognitionService busy";
+                break;
+            case SpeechRecognizer.ERROR_SERVER:
+                message = "error from server";
+                break;
+            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                message = "No speech input";
+                break;
+            default:
+                message = "Didn't understand, please try again.";
+                break;
+        }
+        return message;
+    }
+    /**********************************************************************************************/
+
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (speech != null) {
+            speech.destroy();
+            Log.i(LOG_TAG, "destroy");
+        }
+    }
+
+
+
+
+
+
+
+
+
+}   // end of MainActivity
